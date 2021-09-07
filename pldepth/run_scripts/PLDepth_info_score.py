@@ -10,6 +10,7 @@ from tensorflow import keras
 from tensorflow.python.keras.callbacks import TerminateOnNaN, LearningRateScheduler
 import mlflow
 import time
+
 import tensorflow as tf
 
 from pldepth.util.env import init_env
@@ -37,7 +38,6 @@ from pldepth.util.tracking_utils import construct_model_checkpoint_callback, con
 def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_size, rankings_per_image, initial_lr,
                                equality_threshold, model_checkpoints, load_model_path, augmentation, warmup):
     config = init_env(autolog_freq=1, seed=seed)
-    timestr = time.strftime("%d%m%y-%H%M%S")
 
     # Determine model, dataset and loss types
     model_type = get_model_type_by_name(model_name)
@@ -61,7 +61,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     model_params.set_parameter('augmentation', augmentation)
     model_params.set_parameter('warmup', warmup)
 
-    sampling_strategy = ThresholdedMaskedRandomSamplingStrategy(model_params) # InformationScoreBasedSampling(model_params)
+    sampling_strategy = InformationScoreBasedSampling(model_params)
     model_params.set_parameter('sampling_strategy', sampling_strategy)
 
     model_input_shape = [448, 448, 3]
@@ -85,9 +85,9 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_1k_PATH"], model_input_shape, seed)
 
     train_imgs_ds, train_gts_ds, train_cons_masks, train_inst_mask = dao.get_training_dataset()
-    val_imgs_ds, val_gts_ds, val_cons_masks, val_inst_mask = dao.get_validation_dataset()
+    val_imgs_ds, val_gts_ds, val_cons_masks, val_inst_mask  = dao.get_validation_dataset()
 
-    data_provider = HourglassLargeScaleDataProvider(model_params, train_cons_masks, val_cons_masks, train_inst_mask, val_inst_mask,
+    data_provider = HourglassLargeScaleDataProvider(model_params, train_cons_masks, val_cons_masks,train_inst_mask, val_inst_mask,
                                                     augmentation=model_params.get_parameter("augmentation"),
                                                     loss_type=loss_type)
 
@@ -105,16 +105,16 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     # Apply preprocessing
     def preprocess_ds(loc_x, loc_y):
         return preprocess_fn(loc_x), loc_y
-    #train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    #val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     steps_per_epoch = int(20200 / batch_size)
     model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
               callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
     # Save the weights
     timestr = time.strftime("%d%m%y-%H%M%S")
-    #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
-    model.save('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'10rpi_1k_40ep_6r_model_rnd_sampling.h5')
+    #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'wt_info_sampling3.h5')
+    model.save('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'10rpi_1k-40ep-6r-mod_info_sampling3.h5')
 
 if __name__ == "__main__":
     perform_pldepth_experiment()

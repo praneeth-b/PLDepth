@@ -16,6 +16,7 @@ from pldepth.util.env import init_env
 from pldepth.models.models_meta import ModelParameters, get_model_type_by_name
 from pldepth.util.training_utils import LearningRateScheduleProvider
 from pldepth.util.tracking_utils import construct_model_checkpoint_callback, construct_tensorboard_callback
+from pldepth.active_learning.active_learning_method import active_learning_data_provider
 
 
 @click.command()
@@ -45,7 +46,6 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     dataset_type = get_dataset_type_by_name(dataset)
     loss_type = DepthLossType.NLL
 
-
     # Run meta information
     model_params = ModelParameters()
     model_params.set_parameter("model_type", model_type)
@@ -61,7 +61,8 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     model_params.set_parameter('augmentation', augmentation)
     model_params.set_parameter('warmup', warmup)
 
-    sampling_strategy = ThresholdedMaskedRandomSamplingStrategy(model_params) # InformationScoreBasedSampling(model_params)
+    sampling_strategy = ThresholdedMaskedRandomSamplingStrategy(
+        model_params)  # InformationScoreBasedSampling(model_params)
     model_params.set_parameter('sampling_strategy', sampling_strategy)
 
     model_input_shape = [448, 448, 3]
@@ -82,12 +83,12 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     if load_model_path != "":
         model.load_weights(load_model_path)
 
-    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_1k_PATH"], model_input_shape, seed)
+    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_ROOT_PATH"], model_input_shape, seed)
 
-    train_imgs_ds, train_gts_ds, train_cons_masks, train_inst_mask = dao.get_training_dataset()
-    val_imgs_ds, val_gts_ds, val_cons_masks, val_inst_mask = dao.get_validation_dataset()
+    train_imgs_ds, train_gts_ds, train_cons_masks = dao.get_training_dataset()
+    val_imgs_ds, val_gts_ds, val_cons_masks = dao.get_validation_dataset()
 
-    data_provider = HourglassLargeScaleDataProvider(model_params, train_cons_masks, val_cons_masks, train_inst_mask, val_inst_mask,
+    data_provider = HourglassLargeScaleDataProvider(model_params, train_cons_masks, val_cons_masks,
                                                     augmentation=model_params.get_parameter("augmentation"),
                                                     loss_type=loss_type)
 
@@ -105,16 +106,32 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     # Apply preprocessing
     def preprocess_ds(loc_x, loc_y):
         return preprocess_fn(loc_x), loc_y
-    #train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    #val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+    train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     steps_per_epoch = int(20200 / batch_size)
-    model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+    model.fit(x=train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch,
               callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
     # Save the weights
     timestr = time.strftime("%d%m%y-%H%M%S")
-    #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
-    model.save('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'10rpi_1k_40ep_6r_model_rnd_sampling.h5')
+    # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
+    model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'model20k_rnd_sampling.h5')
+
+    data_path = config["DATA"]["HR_WSI_DEBUG_PATH"]
+    dao_a = HRWSITFDataAccessObject(data_path, model_input_shape, seed=42)
+    test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset()
+
+    active_train_ds = active_learning_data_provider(test_imgs_ds, test_gts_ds, model, batch_size=batch_size, split_num=32)
+    active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    steps_per_epoch = int(1000 / batch_size)
+    #fit active samples over the prev trainedd model.
+    model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch, validation_data=val_ds, verbose=1)
+    # Save the weights
+    timestr = time.strftime("%d%m%y-%H%M%S")
+    # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'active_weight_rnd_sampling')
+    model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'active_model_rnd_sampling.h5')
+
 
 if __name__ == "__main__":
     perform_pldepth_experiment()
