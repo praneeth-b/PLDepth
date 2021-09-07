@@ -103,7 +103,7 @@ class RandomSamplingStrategy(SamplingStrategy):
         return result_matrix[np.argsort(dists)[::-1]][:batch_size]
 
 
-class MaskedRandomSamplingStrategy(RandomSamplingStrategy):
+class PurelyMaskedRandomSamplingStrategy(RandomSamplingStrategy):
     def __init__(self, model_params):
         super().__init__(model_params)
 
@@ -143,6 +143,16 @@ class MaskedRandomSamplingStrategy(RandomSamplingStrategy):
             result_matrix[i, :, 1] = gts_buffer
 
         return result_matrix, dists
+
+    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=1.5):
+        result_matrix, dists = self.sample_masked_rankings(image, mask, gt, batch_size, batch_size_factor)
+
+        return result_matrix[:batch_size]
+
+
+class MaskedRandomSamplingStrategy(PurelyMaskedRandomSamplingStrategy):
+    def __init__(self, model_params):
+        super().__init__(model_params)
 
     def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=1.5):
         result_matrix, dists = self.sample_masked_rankings(image, mask, gt, batch_size, batch_size_factor)
@@ -197,30 +207,37 @@ class ThresholdedMaskedRandomSamplingStrategy(MaskedRandomSamplingStrategy):
         # Return only first places
         return result_matrix[np.argsort(dists)[::-1]][:batch_size]
 
-    def __str__(self):
-        return "{}(num_points_per_sample={}, threshold={})".format(self.__class__.__name__, self._num_points_per_sample,
-                                                                   self.threshold)
-
 
 class InformationScoreBasedSampling(MaskedRandomSamplingStrategy):
-    def __init__(self, model_params, threshold=0.03, batch_size_factor=5):
+    def __init__(self, model_params, threshold=0.03, batch_size_factor=5, equality_penalty=-1000):
         super().__init__(model_params)
         self.threshold = threshold
         self.batch_size_factor = batch_size_factor
+        self.equality_penalty = equality_penalty
 
-    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=5):
+    def sample_masked_point_batch(self, image, mask, gt, inst, batch_size, batch_size_factor=5):
         min_dist = np.amin(gt)
         max_dist = np.amax(gt)
-        #print(min_dist, "and max", max_dist)
+        # print(min_dist, "and max", max_dist)
 
         expected_list = np.linspace(min_dist + 0.001, max_dist, self.num_points_per_sample)
         # print(expected_list)
-        result_matrix, score_Id = self.sample_masked_rankings(image, mask, gt, batch_size, batch_size_factor)
+        result_matrix, score_Id = self.sample_masked_rankings(image, mask, gt, inst, batch_size, batch_size_factor)
+        result_matrix = result_matrix[:, :, :2]
         for i in range(result_matrix.shape[0]):
             gts_buffer = result_matrix[i, :, 1]
+
             tmp_score = 0
             # calculate chi-sq score
             assert len(gts_buffer) == self.num_points_per_sample, "dimension mismatch between the comparisons"
             score_Id[i] = -(np.square(gts_buffer - expected_list) / expected_list).sum()
+            for j in range(len(gts_buffer) - 1):
+                # Penalize equal relations
+                if get_depth_relation(gts_buffer[j], gts_buffer[j + 1], self.threshold) == 0:
+                    score_Id[i] += self.equality_penalty
 
         return result_matrix[np.argsort(score_Id)[::-1]][:batch_size]
+
+    def __str__(self):
+        return "{}(num_points_per_sample={}, threshold={})".format(self.__class__.__name__, self._num_points_per_sample,
+                                                                   self.threshold)

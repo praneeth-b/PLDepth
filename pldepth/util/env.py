@@ -57,7 +57,7 @@ def init_tensorflow(seed, use_float16=False, num_threads=8):
     tf.config.threading.set_inter_op_parallelism_threads(num_threads)
 
 
-def init_env(tracking_uri=None, experiment_name=None, autolog_freq=100, seed=0, use_float16=False, use_mlflow=True):
+def init_env(tracking_uri=None, experiment_name=None, autolog_freq=100, seed=0, use_float16=False, use_mlflow=False):
     config = get_config()
     if use_mlflow:
         init_mlflow(config, tracking_uri, experiment_name)

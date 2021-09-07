@@ -82,12 +82,12 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     if load_model_path != "":
         model.load_weights(load_model_path)
 
-    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_1k_PATH"], model_input_shape, seed)
+    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_TEST_PATH"], model_input_shape, seed)
 
-    train_imgs_ds, train_gts_ds, train_cons_masks, train_inst_mask = dao.get_training_dataset()
-    val_imgs_ds, val_gts_ds, val_cons_masks, val_inst_mask = dao.get_validation_dataset()
+    train_imgs_ds, train_gts_ds, train_cons_masks,  = dao.get_training_dataset()
+    val_imgs_ds, val_gts_ds, val_cons_masks,  = dao.get_validation_dataset()
 
-    data_provider = HourglassLargeScaleDataProvider(model_params, train_cons_masks, val_cons_masks, train_inst_mask, val_inst_mask,
+    data_provider = HourglassLargeScaleDataProvider(model_params, train_cons_masks, val_cons_masks,
                                                     augmentation=model_params.get_parameter("augmentation"),
                                                     loss_type=loss_type)
 
@@ -95,7 +95,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
 
     callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
-                 construct_tensorboard_callback(config, "PLDepth")]
+                 ]
     verbosity = 1
     if model_checkpoints:
         callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
@@ -108,13 +108,13 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     #train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     #val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    steps_per_epoch = int(20200 / batch_size)
-    model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
-              callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
-    # Save the weights
-    timestr = time.strftime("%d%m%y-%H%M%S")
-    #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
-    model.save('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'10rpi_1k_40ep_6r_model_rnd_sampling.h5')
+    # steps_per_epoch = int(20200 / batch_size)
+    # model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+    #           callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
+    # # Save the weights
+    # timestr = time.strftime("%d%m%y-%H%M%S")
+    # #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
+    # model.save('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'10rpi_1k_40ep_6r_model_rnd_sampling.h5')
 
 if __name__ == "__main__":
     perform_pldepth_experiment()
