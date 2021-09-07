@@ -19,7 +19,7 @@ def get_model_checkpoint_path(config, use_mlflow=True):
 
 
 def construct_model_checkpoint_callback(config, model_type, verbosity):
-    save_dir = get_model_checkpoint_path(config)
+    save_dir = get_model_checkpoint_path(config, use_mlflow=False)
     model_name = 'pldepth_%s_model.h5' % model_type
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)

@@ -87,7 +87,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     model.summary()
 
     callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
-                 construct_tensorboard_callback(config, "PLDepth")]
+                 ]
     verbosity = 1
     if model_checkpoints:
         callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))

@@ -105,16 +105,16 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     # Apply preprocessing
     def preprocess_ds(loc_x, loc_y):
         return preprocess_fn(loc_x), loc_y
-    #train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    #val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    # steps_per_epoch = int(20200 / batch_size)
-    # model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
-    #           callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
-    # # Save the weights
-    # timestr = time.strftime("%d%m%y-%H%M%S")
-    # #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
-    # model.save('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'10rpi_1k_40ep_6r_model_rnd_sampling.h5')
+    steps_per_epoch = int(20200 / batch_size)
+    model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+              callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
+    # Save the weights
+    timestr = time.strftime("%d%m%y-%H%M%S")
+    #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
+    model.save('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'10rpi_1k_40ep_6r_model_rnd_sampling.h5')
 
 if __name__ == "__main__":
     perform_pldepth_experiment()
