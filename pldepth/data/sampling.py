@@ -215,14 +215,14 @@ class InformationScoreBasedSampling(MaskedRandomSamplingStrategy):
         self.batch_size_factor = batch_size_factor
         self.equality_penalty = equality_penalty
 
-    def sample_masked_point_batch(self, image, mask, gt, inst, batch_size, batch_size_factor=5):
+    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=5):
         min_dist = np.amin(gt)
         max_dist = np.amax(gt)
         # print(min_dist, "and max", max_dist)
 
         expected_list = np.linspace(min_dist + 0.001, max_dist, self.num_points_per_sample)
         # print(expected_list)
-        result_matrix, score_Id = self.sample_masked_rankings(image, mask, gt, inst, batch_size, batch_size_factor)
+        result_matrix, score_Id = self.sample_masked_rankings(image, mask, gt, batch_size, batch_size_factor)
         result_matrix = result_matrix[:, :, :2]
         for i in range(result_matrix.shape[0]):
             gts_buffer = result_matrix[i, :, 1]
