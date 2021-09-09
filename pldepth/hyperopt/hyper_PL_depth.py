@@ -23,8 +23,8 @@ import numpy as np
 
 
 def perform_pldepth_experiment(lr_dict):
-    model_name = 'ff_effnet'; epochs = 20; batch_size = 4; seed = 30; ranking_size = 6; rankings_per_image = 100; initial_lr = 0,
-    equality_threshold = 0.03; model_checkpoints = True; load_model_path = ""; augmentation = True; warmup = 0
+    model_name = 'ff_effnet'; epochs = 30; batch_size = 4; seed = 990; ranking_size = 6; rankings_per_image = 10; initial_lr = 0,
+    equality_threshold = 0.03; model_checkpoints = False; load_model_path = ""; augmentation = True; warmup = 0
     config = init_env(autolog_freq=1, seed=seed)
 
     # Determine model, dataset and loss types
@@ -49,7 +49,7 @@ def perform_pldepth_experiment(lr_dict):
     model_params.set_parameter('augmentation', augmentation)
     model_params.set_parameter('warmup', warmup)
 
-    sampling_strategy = ThresholdedMaskedRandomSamplingStrategy(model_params)  #HeterogenousSegmentBasedSampling(model_params)  #
+    sampling_strategy = InformationScoreBasedSampling(model_params)  #HeterogenousSegmentBasedSampling(model_params)  #
     model_params.set_parameter('sampling_strategy', sampling_strategy)
 
     model_input_shape = [448, 448, 3]
@@ -72,24 +72,22 @@ def perform_pldepth_experiment(lr_dict):
 
     dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_TEST_PATH"], model_input_shape, seed)
     #
-    train_imgs_ds, train_gts_ds, train_cons_masks, train_instances_mask = dao.get_training_dataset()
-    val_imgs_ds, val_gts_ds, val_cons_masks, val_instance_mask = dao.get_validation_dataset()
+    train_imgs_ds, train_gts_ds, train_cons_masks= dao.get_training_dataset()
+    val_imgs_ds, val_gts_ds, val_cons_masks= dao.get_validation_dataset()
 
     data_provider = HourglassLargeScaleDataProvider(model_params, train_cons_masks, val_cons_masks,
-                                                    train_instances_mask,val_instance_mask,
                                                     augmentation=model_params.get_parameter("augmentation"),
                                                     loss_type=loss_type)
 
     train_ds = data_provider.provide_train_dataset(train_imgs_ds, train_gts_ds)
     val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
 
-    callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
-                 construct_tensorboard_callback(config, "PLDepth")]
+    callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule)]
     verbosity = 1
     if model_checkpoints:
         callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
 
-    model_params.log_parameters()
+    #model_params.log_parameters()
 
     # Apply preprocessing
     def preprocess_ds(loc_x, loc_y):
