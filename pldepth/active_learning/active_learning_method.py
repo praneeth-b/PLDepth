@@ -91,7 +91,7 @@ def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranki
         pos, pos_xy = active_sampling(in_edges, pred_edges)
         oracle_samples = oracle(img_in, gts_in, pos_xy, ranking_size)
         sample_lists.append(oracle_samples)
-        print("the img is",i)
+        # print("the img is",i)
         i+=1
 
     sample_list_tf = tf.data.Dataset.from_tensor_slices(sample_lists)
