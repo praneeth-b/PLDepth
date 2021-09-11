@@ -18,7 +18,7 @@ def active_sampling(in_edges, pred_edges):
 
     for i in range(split_in.shape[0]):
         hd = hausdorf_dist(split_in[i], split_pred[i])
-        print(hd)
+        # print(hd)
         pt_in, pt_pred = hausdorff_pair(split_in[i], split_pred[i])
         # print(pt_in)
 
@@ -43,8 +43,8 @@ def active_sampling(in_edges, pred_edges):
     return pos.astype(np.uint32), pts.astype(np.uint32)    # pos, pos_XY  1024x2
 
 
-def oracle(img, img_gts, pos_xy):
-    list_size = 6
+def oracle(img, img_gts, pos_xy, ranking_size):
+    list_size = ranking_size
     result_buffer = np.zeros([int(pos_xy.shape[0] / list_size), list_size, 2], dtype=np.float32)
     buf = np.zeros((list_size, 2))
 
@@ -63,7 +63,7 @@ def oracle(img, img_gts, pos_xy):
     return result_buffer   # sort and return top 200   1024/6 x 6 x 2
 
 
-def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, split_num=32):
+def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranking_size=6, split_num=32):
     """
     inputs are a dataset of images and their respective ground truths
     """
@@ -89,7 +89,7 @@ def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, split
         pred_edges = auto_canny(pred_im_sharp)
 
         pos, pos_xy = active_sampling(in_edges, pred_edges)
-        oracle_samples = oracle(img_in, gts_in, pos_xy)
+        oracle_samples = oracle(img_in, gts_in, pos_xy, ranking_size)
         sample_lists.append(oracle_samples)
         print("the img is",i)
         i+=1

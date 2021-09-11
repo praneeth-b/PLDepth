@@ -7,11 +7,10 @@ from pldepth.losses.nll_loss import HourglassNegativeLogLikelihood
 from pldepth.models.PLDepthNet import get_pl_depth_net
 import click
 from tensorflow import keras
-from tensorflow.python.keras.callbacks import TerminateOnNaN, LearningRateScheduler
+from tensorflow.python.keras.callbacks import TerminateOnNaN, LearningRateScheduler, CSVLogger
 import mlflow
 import time
 import tensorflow as tf
-
 from pldepth.util.env import init_env
 from pldepth.models.models_meta import ModelParameters, get_model_type_by_name
 from pldepth.util.training_utils import LearningRateScheduleProvider
@@ -93,14 +92,14 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
 
     train_ds = data_provider.provide_train_dataset(train_imgs_ds, train_gts_ds)
     val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
-
+    timestr = time.strftime("%d%m%y-%H%M%S")
+    hist_file = timestr +"rnd_hist.log"
     callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
+                 CSVLogger(config["DATA"]["HIST_PATH"]+hist_file, append=True)
                  ]
     verbosity = 1
     if model_checkpoints:
         callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
-
-    model_params.log_parameters()
 
     # Apply preprocessing
     def preprocess_ds(loc_x, loc_y):
@@ -108,11 +107,11 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    steps_per_epoch = int(20200 / batch_size)
+    steps_per_epoch = int(1000 / batch_size)
     model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
               callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
     # Save the weights
-    timestr = time.strftime("%d%m%y-%H%M%S")
+
     #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
     model.save('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'10rpi_1k_40ep_6r_model_rnd_sampling.h5')
 

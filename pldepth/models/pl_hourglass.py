@@ -1,7 +1,7 @@
 import abc
 from tensorflow.keras import layers
 import tensorflow as tf
-from tensorflow.python.keras.applications.efficientnet import EfficientNetB5
+from tensorflow.python.keras.applications.efficientnet import EfficientNetB5, EfficientNetB0
 from tensorflow.python.keras.applications.efficientnet import preprocess_input as preprocess_input_effnet
 
 from pldepth.losses.losses_meta import DepthLossType
@@ -45,7 +45,7 @@ class EffNetFullyFledged(FullyFledgedModel):
     def get_model_and_normalization(input_shape, ranking_size, loss_type=DepthLossType.NLL):
         input_layer = layers.Input(shape=input_shape, name="input_A")
 
-        encoder = EfficientNetB5(include_top=False, input_tensor=input_layer)
+        encoder = EfficientNetB0(include_top=False, input_tensor=input_layer)
 
         encoded_layer = encoder.output
 

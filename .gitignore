@@ -27,7 +27,7 @@ __pycache__/
 # IPython
 profile_default/
 ipython_config.py
-
+*.ipynb
 
 
 
@@ -44,6 +44,7 @@ venv.bak/
 # additional
 pldepth/weights/
 .idea/
-/trial_dump/
+trial_dump/
 *.json
-
+trials/
+conf/
