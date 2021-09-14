@@ -26,20 +26,19 @@ from pldepth.active_learning.metrics import ordinal_error
 
 
 def active_pldepth_experiment(pars):
-    print(pars["lr"], pars["ranking_size"])
     model_name = 'ff_effnet'
     epochs = 30
-    batch_size = 4
+    batch_size = pars['batch_size']
     seed = 0;
-    ranking_size = 6
-    rankings_per_image = 10
-    initial_lr = 0
+    ranking_size = pars['ranking_size']
+    rankings_per_image = pars['rpi']
+    initial_lr = pars['lr']
+    lr_multi = pars['lr_multi']
     equality_threshold = 0.03
     model_checkpoints = False
     load_model_path = ""
     augmentation = True
     warmup = 0
-    print("some pars are:", epochs, batch_size, ranking_size)
     config = init_env(autolog_freq=1, seed=seed)
     timestr = time.strftime("%d%m%y-%H%M%S")
 
@@ -48,7 +47,7 @@ def active_pldepth_experiment(pars):
     dataset = "HR-WSI"
     dataset_type = get_dataset_type_by_name(dataset)
     loss_type = DepthLossType.NLL
-    load_path = '/home/praneeth/projects/thesis/git/PLDepth/pldepth/weights/100921-092654base_10rpi_1k_30ep_6r_model_rnd_sampling.h5'
+    load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/130921-11061710rpi_1k-0.0035lr-6r-mod_info_sampling.h5'
 
     # Run meta information
     model_params = ModelParameters()
@@ -76,8 +75,8 @@ def active_pldepth_experiment(pars):
     # model.summary()
 
     # Compile model
-    lr_sched_prov = LearningRateScheduleProvider(init_lr=pars["lr"], steps=[25], warmup=warmup, multiplier=0.3162)
-    loss_fn = HourglassNegativeLogLikelihood(ranking_size=pars['ranking_size'],
+    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[20], warmup=warmup, multiplier=lr_multi)
+    loss_fn = HourglassNegativeLogLikelihood(ranking_size=ranking_size,
                                              batch_size=model_params.get_parameter("batch_size"),
                                              debug=False)
 
@@ -114,7 +113,7 @@ def active_pldepth_experiment(pars):
     test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset()
 
     active_train_ds = active_learning_data_provider(test_imgs_ds, test_gts_ds, model, batch_size=batch_size,
-                                                    ranking_size=pars['ranking_size'], split_num=32)
+                                                    ranking_size=ranking_size, split_num=32)
     active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     #fit active samples over the prev trainedd model.ls
