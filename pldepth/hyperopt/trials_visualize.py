@@ -32,13 +32,21 @@ class HyperoptAnalyser():
         plt.show()
 
 
+    def get_best_params(self):
+        return self.trials.best_trial['result']['loss'], self.trials.best_trial['misc']['vals']
+
+    def get_params_names(self):
+        return list(self.trials.vals.keys())
+
 
 
 if __name__ == "__main__":
-    trials = pickle.load(open("/home/praneeth/projects/thesis/git/PLDepth/trials/active-lr-rk-hypopt-sep-11-8743862", "rb"))
+    trials = pickle.load(open("/home/praneeth/projects/thesis/git/PLDepth/trials/activ_on_info_130921-125645", "rb"))
     #samples = f_unpack_dict(f_wrap_space_eval(lr_dict, trials))
     a = HyperoptAnalyser(trials)
-    for key in lr_dict.keys():
-        a.plot_param(key)
-    print(trials.results)
+    #
+    pars = a.get_params_names()
+    print(pars)
+    print(a.get_best_params())
+    a.plot_param('rpi')
 
