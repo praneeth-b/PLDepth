@@ -4,6 +4,7 @@ import mlflow
 import mlflow.tensorflow
 import logging
 import tensorflow as tf
+import wandb
 
 from pldepth.util.time_utils import get_curr_date_str
 
@@ -57,10 +58,19 @@ def init_tensorflow(seed, use_float16=False, num_threads=8):
     tf.config.threading.set_inter_op_parallelism_threads(num_threads)
 
 
+def init_wandb(run_name):
+    os.environ['WANDB_API_KEY'] = '58ae5a04488d3faafd7b3e0e0cc0e373226104c6'
+    os.environ['WANDB_DIR'] = '/scratch/hpc-prf-deepmde/praneeth/wandb-logs/'
+    os.environ["WANDB_NAME"] = run_name
+    os.environ["WANDB_CONSOLE"] = "off"
+
+
 def init_env(tracking_uri=None, experiment_name=None, autolog_freq=100, seed=0, use_float16=False, use_mlflow=False):
     config = get_config()
     if use_mlflow:
         init_mlflow(config, tracking_uri, experiment_name)
+
+    init_wandb(experiment_name)
 
     if config["LOGGING"]["LOG_LEVEL"] == "DEBUG":
         log_level = logging.DEBUG

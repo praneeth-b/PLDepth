@@ -24,12 +24,13 @@ import numpy as np
 
 def perform_pldepth_experiment(pars):
     model_name = 'ff_effnet'
-    epochs = 25
+    epochs = pars['epochs']
     batch_size = pars['batch_size']
     seed = 0;
     ranking_size = pars['ranking_size']
     rankings_per_image = pars['rpi']
     initial_lr = pars['lr']
+    lr_multi = pars['lr_multi']
     equality_threshold = 0.03
     model_checkpoints = False
     load_model_path = ""
@@ -69,7 +70,7 @@ def perform_pldepth_experiment(pars):
 
     # Compile model
     lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[20], warmup=warmup,
-                                                 multiplier=pars['lr_multi'])
+                                                 multiplier=lr_multi)
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                              batch_size=model_params.get_parameter("batch_size"),
                                              debug=False)

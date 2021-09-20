@@ -67,3 +67,13 @@ def ordinal_error(op, gt, imsize=(448, 448), num=100):
     gt_order = np.greater(gt_flat[idx0], gt_flat[idx1])
     accuracy = np.equal(out_order, gt_order).sum() / num
     return 1 - accuracy
+
+
+def calc_err(model, test_im, test_gt):
+    ev = []
+    for i in range(len(test_im)):
+        pred = model.predict(np.array([test_im[i]]), batch_size=None)
+        err = ordinal_error(pred[0], test_gt[i])
+        ev.append(err)
+
+    return np.mean(ev)
