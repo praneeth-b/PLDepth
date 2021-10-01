@@ -21,10 +21,11 @@ from pldepth.util.tracking_utils import construct_model_checkpoint_callback, con
 from hyperopt import STATUS_OK
 import numpy as np
 import wandb
+from pldepth.active_learning.metrics import calc_err
 
 
-def perform_pldepth_experiment(pars):
-    with wandb.init(config=pars):
+def perform_pldepth_experiment(pars=None):
+    with wandb.init(config=pars, settings=wandb.Settings(_disable_stats=True)):
         w_config = wandb.config
 
         model_name = 'ff_effnet'
@@ -40,6 +41,7 @@ def perform_pldepth_experiment(pars):
         load_model_path = ""
         augmentation = True
         warmup = 0
+        sampling_type = w_config['sampling_type']        
 
         config = init_env(autolog_freq=1, seed=seed)
 
@@ -63,9 +65,16 @@ def perform_pldepth_experiment(pars):
         model_params.set_parameter('loss_type', loss_type)
         model_params.set_parameter('augmentation', augmentation)
         model_params.set_parameter('warmup', warmup)
+	
+        if sampling_type == 0:
+            sampling_strategy = ThresholdedMaskedRandomSamplingStrategy(model_params)  # InformationScoreBasedSampling(model_params)
 
-        sampling_strategy = ThresholdedMaskedRandomSamplingStrategy(
-            model_params)  # HeterogenousSegmentBasedSampling(model_params)  #
+        elif sampling_type == 1:
+            sampling_strategy = InformationScoreBasedSampling(model_params)
+
+        else :
+            sampling_strategy = InformationScoreBasedSampling(model_params)
+
         model_params.set_parameter('sampling_strategy', sampling_strategy)
 
         model_input_shape = [448, 448, 3]
@@ -75,7 +84,7 @@ def perform_pldepth_experiment(pars):
         # model.summary()
 
         # Compile model
-        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[20], warmup=warmup,
+        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5], warmup=warmup,
                                                      multiplier=lr_multi)
         loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                                  batch_size=model_params.get_parameter("batch_size"),
@@ -115,11 +124,18 @@ def perform_pldepth_experiment(pars):
         val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
         steps_per_epoch = int(1000 / batch_size)
-       # model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
-         #         callbacks=callbacks,  verbose=verbosity)
-        loss = model.evaluate(val_ds)
+        model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+                 callbacks=callbacks, verbose=verbosity)
+        
+            #evaluate on test data:
+        vds = list(val_imgs_ds.as_numpy_iterator())
+        vgt = list(val_gts_ds.as_numpy_iterator())
+        test_img = vds[:100]
+        test_gt = vgt[:100]
 
-        wandb.log({'val_loss': loss[0]})
+        loss = calc_err(model, test_img, test_gt)
+
+        wandb.log({'val_loss': loss})
 
 
 if __name__ == "__main__":

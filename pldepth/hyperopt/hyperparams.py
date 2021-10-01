@@ -18,7 +18,7 @@ info_dict = {
 
 }
 
-sweep_config = {'method': 'bayes',
+sweep_config_i = {'method': 'bayes',
                 'metric': {'goal': 'minimize', 'name': 'val_loss'},
                 'parameters': {
                     'batch_size': {'distribution': 'constant', 'value': 4},
@@ -27,7 +27,38 @@ sweep_config = {'method': 'bayes',
                     'ranking_size': {'distribution': 'int_uniform', 'max': 30, 'min': 3},
                     'rpi': {'distribution': 'int_uniform', 'max': 200, 'min': 10},
                     'lr_multi': {'distribution': 'uniform', 'max': 0.5, 'min': 0},
-                    'sampling_type': {'value'}
+                    'sampling_type': {'distribution':'constant', 'value':1}
 
                 }
                 }
+
+
+sweep_config_t = {'method': 'bayes',
+                'metric': {'goal': 'minimize', 'name': 'val_loss'},
+                'parameters': {
+                    'batch_size': {'distribution': 'constant', 'value': 4},
+                    'epochs': {'distribution': 'constant', 'value': 8},
+                    'lr': {'distribution': 'log_uniform', 'max': -2, 'min': -7},
+                    'ranking_size': {'distribution': 'int_uniform', 'max': 25, 'min': 3},
+                    'rpi': {'distribution': 'int_uniform', 'max': 200, 'min': 10},
+                    'lr_multi': {'distribution': 'uniform', 'max': 0.5, 'min': 0},
+                    'sampling_type': {'distribution':'constant', 'value':0}
+
+                }
+                }
+
+
+
+activ_sweep = { 'method': 'bayes',
+                'metric': {'goal': 'minimize', 'name': 'val_loss'},
+             'parameters': {
+                'lr': {'distribution': 'log_uniform', 'max': -1, 'min': -7},
+                'lr_multi': {'distribution': 'uniform', 'max': 0.5, 'min': 0},
+                'ranking_size': {'distribution': 'int_uniform', 'max': 30, 'min': 2},
+                'batch_size': {'distribution': 'constant', 'value': 4},
+                'epochs': {'distribution': 'constant', 'value': 6},
+                 'rpi': {'distribution': 'constant', 'value':50}
+             }
+
+
+}
