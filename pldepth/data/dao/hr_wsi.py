@@ -12,8 +12,13 @@ class HRWSITFDataAccessObject(TFDataAccessObject):
             self.target_shape = target_shape[:2]
         self.seed = seed
 
-    def get_training_dataset(self):
-        return self.construct_raw_file_dataset('train', zip_ds=False, shuffle=True)
+    def get_training_dataset(self, size=None):
+        if not size:
+            return self.construct_raw_file_dataset('train', zip_ds=False, shuffle=True)
+        else:
+            im_ds, labels_ds, cons_ds = self.construct_raw_file_dataset('train', zip_ds=False, shuffle=True)
+            return im_ds.take(size), labels_ds.take(size), cons_ds.take(size)
+
 
     def get_validation_dataset(self):
         return self.construct_raw_file_dataset('val', zip_ds=False, shuffle=False)
