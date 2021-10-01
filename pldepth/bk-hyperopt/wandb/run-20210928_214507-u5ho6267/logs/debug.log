@@ -1,0 +1,36 @@
+2021-09-28 21:45:07,512 INFO    Thread-12 :25279 [wandb_setup.py:_flush():69] setting env: {'project': 'Active_sweep', 'entity': 'pranbk', 'root_dir': '/home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt', 'run_id': 'u5ho6267', 'sweep_param_path': '/home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/sweep-8vfhliyw/config-u5ho6267.yaml', 'sweep_id': '8vfhliyw'}
+2021-09-28 21:45:07,512 INFO    Thread-12 :25279 [wandb_setup.py:_flush():69] setting login settings: {}
+2021-09-28 21:45:07,512 INFO    Thread-12 :25279 [wandb_init.py:_log_setup():348] Logging user logs to /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_214507-u5ho6267/logs/debug.log
+2021-09-28 21:45:07,512 INFO    Thread-12 :25279 [wandb_init.py:_log_setup():349] Logging internal logs to /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_214507-u5ho6267/logs/debug-internal.log
+2021-09-28 21:45:07,512 INFO    Thread-12 :25279 [wandb_init.py:init():381] calling init triggers
+2021-09-28 21:45:07,512 INFO    Thread-12 :25279 [wandb_init.py:init():388] wandb.init called with sweep_config: {'batch_size': 4, 'epochs': 6, 'lr': 0.0010718710881322516, 'lr_multi': 0.1363164247925201, 'ranking_size': 10}
+config: {}
+2021-09-28 21:45:07,512 INFO    Thread-12 :25279 [wandb_init.py:init():430] starting backend
+2021-09-28 21:45:07,513 INFO    Thread-12 :25279 [backend.py:_multiprocessing_setup():72] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2021-09-28 21:45:07,516 INFO    Thread-12 :25279 [backend.py:ensure_launched():135] starting backend process...
+2021-09-28 21:45:07,522 INFO    Thread-12 :25279 [backend.py:ensure_launched():140] started backend process with pid: 25416
+2021-09-28 21:45:07,523 INFO    Thread-12 :25279 [wandb_init.py:init():435] backend started and connected
+2021-09-28 21:45:07,525 INFO    Thread-12 :25279 [wandb_run.py:_config_callback():847] config_cb None None {'batch_size': 4, 'epochs': 6, 'lr': 0.0010718710881322516, 'lr_multi': 0.1363164247925201, 'ranking_size': 10}
+2021-09-28 21:45:07,525 INFO    Thread-12 :25279 [wandb_init.py:init():494] updated telemetry
+2021-09-28 21:45:07,526 INFO    Thread-12 :25279 [wandb_init.py:init():517] communicating current version
+2021-09-28 21:45:08,211 INFO    Thread-12 :25279 [wandb_init.py:init():522] got version response 
+2021-09-28 21:45:08,211 INFO    Thread-12 :25279 [wandb_init.py:init():530] communicating run to backend with 30 second timeout
+2021-09-28 21:45:08,527 INFO    Thread-12 :25279 [wandb_init.py:init():557] starting run threads in backend
+2021-09-28 21:45:12,316 INFO    Thread-12 :25279 [wandb_run.py:_console_start():1605] atexit reg
+2021-09-28 21:45:12,317 INFO    Thread-12 :25279 [wandb_run.py:_redirect():1479] redirect: SettingsConsole.REDIRECT
+2021-09-28 21:45:12,317 INFO    Thread-12 :25279 [wandb_run.py:_redirect():1484] Redirecting console.
+2021-09-28 21:45:12,317 ERROR   Thread-12 :25279 [wandb_run.py:_redirect():1543] Failed to redirect.
+Traceback (most recent call last):
+  File "/home/praneeth/anaconda3/envs/thesis/lib/python3.7/site-packages/wandb/sdk/wandb_run.py", line 1536, in _redirect
+    out_redir.install()
+  File "/home/praneeth/anaconda3/envs/thesis/lib/python3.7/site-packages/wandb/sdk/lib/redirect.py", line 709, in install
+    _WSCH.add_fd(self._pipe_read_fd)
+  File "/home/praneeth/anaconda3/envs/thesis/lib/python3.7/site-packages/wandb/sdk/lib/redirect.py", line 659, in add_fd
+    self._register()
+  File "/home/praneeth/anaconda3/envs/thesis/lib/python3.7/site-packages/wandb/sdk/lib/redirect.py", line 644, in _register
+    old_handler = signal.signal(signal.SIGWINCH, lambda *_: None)
+  File "/home/praneeth/anaconda3/envs/thesis/lib/python3.7/signal.py", line 47, in signal
+    handler = _signal.signal(_enum_to_int(signalnum), _enum_to_int(handler))
+ValueError: signal only works in main thread
+2021-09-28 21:45:12,317 INFO    Thread-12 :25279 [wandb_init.py:init():582] run started, returning control to user process
+2021-09-28 21:45:12,317 INFO    Thread-12 :25279 [wandb_run.py:finish():1275] finishing run pranbk/Active_sweep/u5ho6267

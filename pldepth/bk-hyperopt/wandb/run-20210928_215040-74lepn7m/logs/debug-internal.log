@@ -1,0 +1,143 @@
+2021-09-28 21:50:42,347 INFO    MainThread:25778 [internal.py:wandb_internal():89] W&B internal server running at pid: 25778, started at: 2021-09-28 21:50:42.347147
+2021-09-28 21:50:42,351 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: check_version
+2021-09-28 21:50:42,351 INFO    WriterThread:25778 [datastore.py:open_for_write():77] open: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/run-74lepn7m.wandb
+2021-09-28 21:50:42,354 DEBUG   SenderThread:25778 [sender.py:send():185] send: header
+2021-09-28 21:50:42,355 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: check_version
+2021-09-28 21:50:42,472 DEBUG   SenderThread:25778 [sender.py:send():185] send: run
+2021-09-28 21:50:42,774 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: run_start
+2021-09-28 21:50:42,777 INFO    SenderThread:25778 [dir_watcher.py:__init__():169] watching files in: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files
+2021-09-28 21:50:42,777 INFO    SenderThread:25778 [sender.py:_start_run_threads():749] run started: 74lepn7m with start time 1632858640
+2021-09-28 21:50:42,778 DEBUG   SenderThread:25778 [sender.py:send():185] send: summary
+2021-09-28 21:50:42,780 INFO    SenderThread:25778 [sender.py:_save_file():879] saving file wandb-summary.json with policy end
+2021-09-28 21:50:43,779 INFO    Thread-13 :25778 [dir_watcher.py:_on_file_created():217] file/dir created: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/wandb-summary.json
+2021-09-28 21:50:45,383 DEBUG   HandlerThread:25778 [meta.py:__init__():40] meta init
+2021-09-28 21:50:45,383 DEBUG   HandlerThread:25778 [meta.py:__init__():54] meta init done
+2021-09-28 21:50:45,383 DEBUG   HandlerThread:25778 [meta.py:probe():211] probe
+2021-09-28 21:50:45,390 DEBUG   HandlerThread:25778 [meta.py:_setup_git():201] setup git
+2021-09-28 21:50:45,415 DEBUG   HandlerThread:25778 [meta.py:_setup_git():208] setup git done
+2021-09-28 21:50:45,415 DEBUG   HandlerThread:25778 [meta.py:_save_pip():58] save pip
+2021-09-28 21:50:45,417 DEBUG   HandlerThread:25778 [meta.py:_save_pip():72] save pip done
+2021-09-28 21:50:45,417 DEBUG   HandlerThread:25778 [meta.py:_save_conda():79] save conda
+2021-09-28 21:50:45,775 INFO    Thread-13 :25778 [dir_watcher.py:_on_file_created():217] file/dir created: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/conda-environment.yaml
+2021-09-28 21:50:45,776 INFO    Thread-13 :25778 [dir_watcher.py:_on_file_created():217] file/dir created: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/requirements.txt
+2021-09-28 21:50:47,903 DEBUG   HandlerThread:25778 [meta.py:_save_conda():87] save conda done
+2021-09-28 21:50:47,903 DEBUG   HandlerThread:25778 [meta.py:probe():249] probe done
+2021-09-28 21:50:47,912 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: stop_status
+2021-09-28 21:50:47,914 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:47,914 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: stop_status
+2021-09-28 21:50:48,139 DEBUG   SenderThread:25778 [sender.py:send():185] send: telemetry
+2021-09-28 21:50:48,140 DEBUG   SenderThread:25778 [sender.py:send():185] send: exit
+2021-09-28 21:50:48,140 INFO    SenderThread:25778 [sender.py:send_exit():294] handling exit code: 1
+2021-09-28 21:50:48,141 INFO    SenderThread:25778 [sender.py:send_exit():296] handling runtime: 5
+2021-09-28 21:50:48,178 INFO    SenderThread:25778 [sender.py:_save_file():879] saving file wandb-summary.json with policy end
+2021-09-28 21:50:48,179 INFO    SenderThread:25778 [sender.py:send_exit():306] send defer
+2021-09-28 21:50:48,179 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:48,180 DEBUG   SenderThread:25778 [sender.py:send():185] send: files
+2021-09-28 21:50:48,180 INFO    SenderThread:25778 [sender.py:_save_file():879] saving file wandb-metadata.json with policy now
+2021-09-28 21:50:48,192 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:48,194 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 0
+2021-09-28 21:50:48,194 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:48,195 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 0
+2021-09-28 21:50:48,195 INFO    SenderThread:25778 [sender.py:transition_state():319] send defer: 1
+2021-09-28 21:50:48,195 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:48,195 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 1
+2021-09-28 21:50:48,278 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:48,279 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 1
+2021-09-28 21:50:48,279 INFO    SenderThread:25778 [sender.py:transition_state():319] send defer: 2
+2021-09-28 21:50:48,280 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:48,280 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 2
+2021-09-28 21:50:48,280 DEBUG   SenderThread:25778 [sender.py:send():185] send: stats
+2021-09-28 21:50:48,281 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:48,281 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 2
+2021-09-28 21:50:48,281 INFO    SenderThread:25778 [sender.py:transition_state():319] send defer: 3
+2021-09-28 21:50:48,282 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:48,282 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 3
+2021-09-28 21:50:48,282 DEBUG   SenderThread:25778 [sender.py:send():185] send: summary
+2021-09-28 21:50:48,283 INFO    SenderThread:25778 [sender.py:_save_file():879] saving file wandb-summary.json with policy end
+2021-09-28 21:50:48,283 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:48,283 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 3
+2021-09-28 21:50:48,283 INFO    SenderThread:25778 [sender.py:transition_state():319] send defer: 4
+2021-09-28 21:50:48,284 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:48,284 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 4
+2021-09-28 21:50:48,284 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:48,285 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 4
+2021-09-28 21:50:48,308 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:48,545 INFO    SenderThread:25778 [sender.py:transition_state():319] send defer: 5
+2021-09-28 21:50:48,545 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:48,546 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:48,546 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 5
+2021-09-28 21:50:48,547 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:48,547 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 5
+2021-09-28 21:50:48,547 INFO    SenderThread:25778 [dir_watcher.py:finish():283] shutting down directory watcher
+2021-09-28 21:50:48,649 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:48,777 INFO    Thread-13 :25778 [dir_watcher.py:_on_file_modified():230] file/dir modified: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/config.yaml
+2021-09-28 21:50:48,779 INFO    SenderThread:25778 [dir_watcher.py:_on_file_modified():230] file/dir modified: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/wandb-summary.json
+2021-09-28 21:50:48,780 INFO    SenderThread:25778 [dir_watcher.py:_on_file_created():217] file/dir created: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/output.log
+2021-09-28 21:50:48,781 INFO    SenderThread:25778 [dir_watcher.py:_on_file_created():217] file/dir created: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/wandb-metadata.json
+2021-09-28 21:50:48,782 INFO    SenderThread:25778 [dir_watcher.py:finish():313] scan: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files
+2021-09-28 21:50:48,783 INFO    SenderThread:25778 [dir_watcher.py:finish():327] scan save: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/wandb-metadata.json wandb-metadata.json
+2021-09-28 21:50:48,784 INFO    SenderThread:25778 [dir_watcher.py:finish():327] scan save: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/output.log output.log
+2021-09-28 21:50:48,784 INFO    SenderThread:25778 [dir_watcher.py:finish():327] scan save: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/conda-environment.yaml conda-environment.yaml
+2021-09-28 21:50:48,785 INFO    SenderThread:25778 [dir_watcher.py:finish():327] scan save: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/wandb-summary.json wandb-summary.json
+2021-09-28 21:50:48,785 INFO    SenderThread:25778 [dir_watcher.py:finish():327] scan save: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/requirements.txt requirements.txt
+2021-09-28 21:50:48,793 INFO    SenderThread:25778 [dir_watcher.py:finish():327] scan save: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/config.yaml config.yaml
+2021-09-28 21:50:48,794 INFO    SenderThread:25778 [sender.py:transition_state():319] send defer: 6
+2021-09-28 21:50:48,800 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:48,850 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:48,851 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 6
+2021-09-28 21:50:48,922 INFO    Thread-16 :25778 [upload_job.py:push():137] Uploaded file /tmp/tmp838c6pg2wandb/30w8mqn2-wandb-metadata.json
+2021-09-28 21:50:48,927 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:48,927 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:48,929 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 6
+2021-09-28 21:50:48,929 INFO    SenderThread:25778 [file_pusher.py:finish():177] shutting down file pusher
+2021-09-28 21:50:48,929 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:49,032 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:49,033 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:49,139 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:49,140 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:49,274 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:49,274 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:49,377 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:49,379 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:49,483 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:49,483 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:49,586 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:49,587 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:49,612 INFO    Thread-17 :25778 [upload_job.py:push():137] Uploaded file /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/wandb-summary.json
+2021-09-28 21:50:49,647 INFO    Thread-18 :25778 [upload_job.py:push():137] Uploaded file /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/requirements.txt
+2021-09-28 21:50:49,651 INFO    Thread-19 :25778 [upload_job.py:push():137] Uploaded file /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/files/config.yaml
+2021-09-28 21:50:49,691 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:49,692 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:49,795 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:49,796 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:49,854 INFO    Thread-12 :25778 [sender.py:transition_state():319] send defer: 7
+2021-09-28 21:50:49,857 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:49,857 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 7
+2021-09-28 21:50:49,858 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:49,859 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 7
+2021-09-28 21:50:49,901 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:50,253 INFO    SenderThread:25778 [sender.py:transition_state():319] send defer: 8
+2021-09-28 21:50:50,254 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:50,256 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:50,256 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 8
+2021-09-28 21:50:50,257 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:50,257 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 8
+2021-09-28 21:50:50,258 INFO    SenderThread:25778 [sender.py:transition_state():319] send defer: 9
+2021-09-28 21:50:50,262 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: defer
+2021-09-28 21:50:50,263 INFO    HandlerThread:25778 [handler.py:handle_request_defer():143] handle defer: 9
+2021-09-28 21:50:50,264 DEBUG   SenderThread:25778 [sender.py:send():185] send: final
+2021-09-28 21:50:50,264 DEBUG   SenderThread:25778 [sender.py:send():185] send: footer
+2021-09-28 21:50:50,265 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: defer
+2021-09-28 21:50:50,265 INFO    SenderThread:25778 [sender.py:send_request_defer():315] handle sender defer: 9
+2021-09-28 21:50:50,359 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: poll_exit
+2021-09-28 21:50:50,360 DEBUG   SenderThread:25778 [sender.py:send_request():199] send_request: poll_exit
+2021-09-28 21:50:50,361 INFO    SenderThread:25778 [file_pusher.py:join():182] waiting for file pusher
+2021-09-28 21:50:50,835 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: get_summary
+2021-09-28 21:50:50,838 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: sampled_history
+2021-09-28 21:50:50,842 DEBUG   HandlerThread:25778 [handler.py:handle_request():126] handle_request: shutdown
+2021-09-28 21:50:50,843 INFO    HandlerThread:25778 [handler.py:finish():683] shutting down handler
+2021-09-28 21:50:51,267 INFO    WriterThread:25778 [datastore.py:close():281] close: /home/praneeth/projects/thesis/git/PLDepth/pldepth/hyperopt/wandb/run-20210928_215040-74lepn7m/run-74lepn7m.wandb
+2021-09-28 21:50:51,831 INFO    SenderThread:25778 [sender.py:finish():985] shutting down sender
+2021-09-28 21:50:51,831 INFO    SenderThread:25778 [file_pusher.py:finish():177] shutting down file pusher
+2021-09-28 21:50:51,831 INFO    SenderThread:25778 [file_pusher.py:join():182] waiting for file pusher
+2021-09-28 21:50:52,325 INFO    MainThread:25778 [internal.py:handle_exit():76] Internal process exited

@@ -1,0 +1,12 @@
+wandb_version: 1
+
+batch_size:
+  value: 4
+epochs:
+  value: 6
+lr:
+  value: 0.0031397694073964
+lr_multi:
+  value: 0.3028303511601446
+ranking_size:
+  value: 12
