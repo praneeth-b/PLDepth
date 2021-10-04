@@ -1,5 +1,6 @@
 import wandb
-
+from wandb.keras import WandbCallback
+import os
 from pldepth.data.dao.hr_wsi import HRWSITFDataAccessObject
 from pldepth.data.io_utils import get_dataset_type_by_name
 from pldepth.data.providers.hourglass_provider import HourglassLargeScaleDataProvider
@@ -15,11 +16,9 @@ import time
 import tensorflow as tf
 from pldepth.util.env import init_env
 from pldepth.models.models_meta import ModelParameters, get_model_type_by_name
-from pldepth.util.training_utils import LearningRateScheduleProvider
+from pldepth.util.training_utils import LearningRateScheduleProvider, SGDRScheduler, LearningRateLoggingCallback
 from pldepth.util.tracking_utils import construct_model_checkpoint_callback, construct_tensorboard_callback
 from pldepth.active_learning.metrics import calc_err
-from wandb.keras import WandbCallback
-
 
 @click.command()
 @click.option('--model_name', default='ff_effnet', help='Backbone model',
@@ -38,15 +37,27 @@ from wandb.keras import WandbCallback
 @click.option('--augmentation', default=True, type=click.BOOL)
 @click.option('--warmup', default=0, type=click.INT)
 @click.option('--sampling_type', default=1, type=click.INT)
-@click.option('--lr_multi', default=0.9, type=click.FLOAT)
-@click.option('--ds_size', default=50, type=click.INT)
-
+@click.option('--lr_multi', default=0.25, type=click.FLOAT)
+@click.option('--ds_size', default=5000, type=click.INT)
 def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_size, rankings_per_image, initial_lr,
                                equality_threshold, model_checkpoints, load_model_path, augmentation, warmup,
                                sampling_type, lr_multi, ds_size):
-    config = init_env(experiment_name="pldepth-train2-" + str(sampling_type), autolog_freq=1, seed=seed)
+    config = init_env(experiment_name=str(sampling_type), autolog_freq=1, seed=seed)
+    print("dataset size is: ",ds_size)
+    run_name= "Pldepth-train"
+    #print("#########********** main INITIALIZING WANDB ***********  ####################")
+    #os.environ['WANDB_API_KEY'] = '58ae5a04488d3faafd7b3e0e0cc0e373226104c6'
+    #os.environ['WANDB_DIR'] ='/scratch/hpc-prf-deepmde/praneeth/wandb-logs/'
+    #os.environ["WANDB_NAME"] = run_name
+    #os.environ["WANDB_CONSOLE"] = "off"
+    #os.environ['WANDB_MODE'] = 'offline'
 
-    run = wandb.init(project="dummy", dir='/scratch/hpc-prf-deepmde/praneeth/wandb-logs/',
+    
+    print("##################### train started ###########################")
+    timestr = time.strftime("%d%m%y-%H%M%S")
+    #config = init_env(experiment_name=timestr+str(sampling_type), autolog_freq=1, seed=seed)
+    print("the env var is: ", os.environ['WANDB_DIR']) 
+    run = wandb.init(project="Pldepth-train", settings=wandb.Settings(_disable_stats=True), # dir='/scratch/hpc-prf-deepmde/praneeth/wandb-logs',
                      config={'model_name': model_name,
                              'epochs': epochs,
                              'batch_size': batch_size,
@@ -56,7 +67,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
                              'initial_lr': initial_lr,
                              'sampling_type': sampling_type,
                              'lr_multi': lr_multi,
-                             'dataset_size':ds_size
+			     'dataset_size':ds_size
                              })
     w_config = wandb.config
 
@@ -98,17 +109,16 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
 
     # Get model
     model, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
-    model.summary()
+    #model.summary()
 
     # Compile model
-    #lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[20], warmup=warmup, multiplier=lr_multi)
-    lr_sched_prov = keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=initial_lr, decay_steps=epochs, decay_rate=lr_multi)
+    lr_sched_prov =  LearningRateScheduleProvider(init_lr=initial_lr, steps=[10,15,20,25], warmup=warmup, multiplier=lr_multi)
+
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                              batch_size=model_params.get_parameter("batch_size"),
                                              debug=False)
 
-
-    optimizer = keras.optimizers.Adam(learning_rate=lr_sched_prov, amsgrad=True)
+    optimizer = keras.optimizers.Adam(learning_rate=lr_sched_prov.get_lr_schedule(0), amsgrad=True)
     model.compile(loss=loss_fn, optimizer=optimizer)
 
     if load_model_path != "":
@@ -134,9 +144,13 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
 
     train_ds = data_provider.provide_train_dataset(train_imgs_ds, train_gts_ds)
     val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
+    
 
-    callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov), WandbCallback()
-                 ]
+
+    timestr = time.strftime("%d%m%y-%H%M%S")
+    hist_file = timestr + "rnd_hist.log"
+    callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
+                   WandbCallback(mode=min, log_batch_frequency=None)]
     verbosity = 1
     if model_checkpoints:
         callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
@@ -145,12 +159,12 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     def preprocess_ds(loc_x, loc_y):
         return preprocess_fn(loc_x), loc_y
 
-    train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    #train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    #val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    steps_per_epoch = int((ds_size*14/15)/batch_size)
-    # model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
-    #           callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
+    steps_per_epoch = int(5000 / batch_size)
+    model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+               callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
     # Save the weights
 
     # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
@@ -159,8 +173,8 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     #evaluate on test data:
     vds = list(eval_imgs_ds.as_numpy_iterator())
     vgt = list(eval_gts_ds.as_numpy_iterator())
-    test_img = vds[:5]
-    test_gt = vgt[:5]
+    test_img = vds[:100]
+    test_gt = vgt[:100]
 
     err = calc_err(model, test_img, test_gt)
     wandb.run.summary["test_error"] = err
