@@ -34,13 +34,14 @@ def active_pldepth_experiment(pars=None):
 
 
         model_name = 'ff_effnet'
-        epochs = 30
+        epochs = w_config['epochs']
         batch_size = w_config['batch_size']
         seed = 0;
         ranking_size = w_config['ranking_size']
-        rankings_per_image = w_config['rpi']
+        rankings_per_image = 50
         initial_lr = w_config['lr']
         lr_multi = w_config['lr_multi']
+        split_num = w_config['num_split']
         equality_threshold = 0.03
         model_checkpoints = False
         load_model_path = ""
@@ -54,8 +55,8 @@ def active_pldepth_experiment(pars=None):
         dataset = "HR-WSI"
         dataset_type = get_dataset_type_by_name(dataset)
         loss_type = DepthLossType.NLL
-        #load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/model-best-inf1k.h5'
-        load_path = '/home/praneeth/projects/thesis/git/PLDepth/pldepth/weights/100921-092654base_10rpi_1k_30ep_6r_model_rnd_sampling.h5'
+        load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/model-best-inf1k.h5'
+        #load_path = '/home/praneeth/projects/thesis/git/PLDepth/pldepth/weights/100921-092654base_10rpi_1k_30ep_6r_model_rnd_sampling.h5'
         # Run meta information
         model_params = ModelParameters()
         model_params.set_parameter("model_type", model_type)
@@ -99,7 +100,7 @@ def active_pldepth_experiment(pars=None):
             return preprocess_fn(loc_x), loc_y
 
         print("Start active sampling")
-        data_path = config["DATA"]["HR_DEBUG_ACT_PATH"]
+        data_path = config["DATA"]["HR_WSI_TEST_PATH"]
         dao_a = HRWSITFDataAccessObject(data_path, model_input_shape, seed)
         test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset()
 
@@ -110,19 +111,19 @@ def active_pldepth_experiment(pars=None):
                                                         loss_type=loss_type)
         val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
 
-        active_train_ds = active_learning_data_provider(test_imgs_ds, test_gts_ds, model, batch_size=batch_size, ranking_size=ranking_size,
-                                                        split_num=32)
+        active_train_ds = active_learning_data_provider(test_imgs_ds, test_gts_ds, model, batch_size=batch_size,
+                                                        ranking_size=ranking_size, split_num=split_num)
         active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
         # fit active samples over the prev trained model.ls
-        steps_per_epoch = int(5000 / batch_size)
+        steps_per_epoch = int(1000 / batch_size)
         print("fit active sampled data")
-        # model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch,
-        #            callbacks=callbacks, verbose=1)
+        model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch,
+                    callbacks=callbacks, verbose=1)
         vds = list(val_imgs_ds.as_numpy_iterator())
         vgt = list(val_gts_ds.as_numpy_iterator())
-        test_img = vds[:100]
-        test_gt = vgt[:100]
+        test_img = vds[:150]
+        test_gt = vgt[:150]
 
         loss = calc_err(model, test_img, test_gt)
         wandb.log({'val_loss': loss})

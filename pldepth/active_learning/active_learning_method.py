@@ -4,10 +4,10 @@ from pldepth.active_learning.metrics import hausdorf_dist, hausdorff_pair
 import cv2
 import tensorflow as tf
 
-split_num = 32
+#split_num = 32
 
 
-def active_sampling(in_edges, pred_edges):
+def active_sampling(in_edges, pred_edges, split_num):
     """
     pass the edge map of input and predicted depth image respectively
     """
@@ -77,7 +77,7 @@ def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranki
     for img_in, gts_in in zip(img_ds_in, img_gt_in):
         img_o = cv2.cvtColor(img_in, cv2.COLOR_RGB2GRAY)
         img_o = cv2.normalize(img_o, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        img_o = cv2.medianBlur(img_o, 15)  # cv2.blur(img_o, ksize=(7,7))
+        img_o = cv2.medianBlur(img_o, 15)  # cv2.blur(img_o, ksize=(7,7))    # blur amt
         # Using the Canny filter to get contours of orig image
         in_edges = auto_canny(img_o)
 
@@ -88,7 +88,7 @@ def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranki
         pred_im_sharp = unsharp_mask(pred_im_out)
         pred_edges = auto_canny(pred_im_sharp)
 
-        pos, pos_xy = active_sampling(in_edges, pred_edges)
+        pos, pos_xy = active_sampling(in_edges, pred_edges,split_num)
         oracle_samples = oracle(img_in, gts_in, pos_xy, ranking_size)
         sample_lists.append(oracle_samples)
         # print("the img is",i)

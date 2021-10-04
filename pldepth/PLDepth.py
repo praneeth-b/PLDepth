@@ -148,7 +148,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    steps_per_epoch = int(1000/batch_size)
+    steps_per_epoch = int((ds_size*14/15)/batch_size)
     # model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
     #           callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
     # Save the weights

@@ -1,7 +1,8 @@
 from pldepth.data.dao.hr_wsi import HRWSITFDataAccessObject
 from pldepth.data.io_utils import get_dataset_type_by_name
 from pldepth.data.providers.hourglass_provider import HourglassLargeScaleDataProvider
-from pldepth.data.sampling import ThresholdedMaskedRandomSamplingStrategy, InformationScoreBasedSampling
+from pldepth.data.sampling import ThresholdedMaskedRandomSamplingStrategy, InformationScoreBasedSampling, \
+    MaskedRandomSamplingStrategy
 from pldepth.losses.losses_meta import DepthLossType
 from pldepth.losses.nll_loss import HourglassNegativeLogLikelihood
 from pldepth.models.PLDepthNet import get_pl_depth_net
@@ -11,34 +12,30 @@ from tensorflow.python.keras.callbacks import TerminateOnNaN, LearningRateSchedu
 import mlflow
 import time
 import tensorflow as tf
-
+from pldepth.active_learning.metrics import ordinal_error
 from pldepth.util.env import init_env
 from pldepth.models.models_meta import ModelParameters, get_model_type_by_name
 from pldepth.util.training_utils import LearningRateScheduleProvider
 from pldepth.util.tracking_utils import construct_model_checkpoint_callback, construct_tensorboard_callback
-from pldepth.active_learning.active_learning_method import active_learning_data_provider
+
+from hyperopt import STATUS_OK
+import numpy as np
 
 
-@click.command()
-@click.option('--model_name', default='ff_effnet', help='Backbone model',
-              type=click.Choice(['ff_redweb', 'ff_effnet'], case_sensitive=False))
-@click.option('--epochs', default=50)
-@click.option('--batch_size', default=4)  # modified
-@click.option('--seed', default=0)
-@click.option('--ranking_size', default=3, help='Number of elements per training ranking')
-@click.option('--rankings_per_image', default=100, help='Number of rankings per image for training')
-@click.option('--initial_lr', default=0.01, type=click.FLOAT)
-@click.option('--equality_threshold', default=0.03, type=click.FLOAT, help='Threshold which corresponds to the tau '
-                                                                           'parameter as used in Section 3.5.')
-@click.option('--model_checkpoints', default=False, help='Indicator whether the currently best performing model should'
-                                                         ' be saved.', type=click.BOOL)
-@click.option('--load_model_path', default='', help='Specify the path to a model in order to load it')
-@click.option('--augmentation', default=True, type=click.BOOL)
-@click.option('--warmup', default=0, type=click.INT)
-def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_size, rankings_per_image, initial_lr,
-                               equality_threshold, model_checkpoints, load_model_path, augmentation, warmup):
+def perform_pldepth_experiment(pars):
+    model_name = 'ff_effnet'
+    epochs = 30
+    batch_size = pars['batch_size']
+    seed = 0;
+    ranking_size = pars['ranking_size']
+    rankings_per_image = pars['rpi']
+    initial_lr = pars['lr']
+    equality_threshold = 0.03
+    model_checkpoints = False
+    load_model_path = ""
+    augmentation = True
+    warmup = 0
     config = init_env(autolog_freq=1, seed=seed)
-    timestr = time.strftime("%d%m%y-%H%M%S")
 
     # Determine model, dataset and loss types
     model_type = get_model_type_by_name(model_name)
@@ -61,30 +58,30 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     model_params.set_parameter('augmentation', augmentation)
     model_params.set_parameter('warmup', warmup)
 
-    sampling_strategy = ThresholdedMaskedRandomSamplingStrategy(
-        model_params)  # InformationScoreBasedSampling(model_params)
+    sampling_strategy = ThresholdedMaskedRandomSamplingStrategy(model_params)  # HeterogenousSegmentBasedSampling(model_params)  #
     model_params.set_parameter('sampling_strategy', sampling_strategy)
 
     model_input_shape = [448, 448, 3]
 
     # Get model
     model, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
-    model.summary()
+    # model.summary()
 
     # Compile model
-    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[25], warmup=warmup, multiplier=0.3162)
+    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[20], warmup=warmup,
+                                                 multiplier=pars['lr_multi'])
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                              batch_size=model_params.get_parameter("batch_size"),
                                              debug=False)
 
     optimizer = keras.optimizers.Adam(learning_rate=lr_sched_prov.get_lr_schedule(0), amsgrad=True)
-    model.compile(loss=loss_fn, optimizer=optimizer)
+    model.compile(loss=loss_fn, optimizer=optimizer, metrics=loss_fn)
 
     if load_model_path != "":
         model.load_weights(load_model_path)
 
-    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_ROOT_PATH"], model_input_shape, seed)
-
+    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_1K_PATH"], model_input_shape, seed)
+    #
     train_imgs_ds, train_gts_ds, train_cons_masks = dao.get_training_dataset()
     val_imgs_ds, val_gts_ds, val_cons_masks = dao.get_validation_dataset()
 
@@ -95,43 +92,39 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     train_ds = data_provider.provide_train_dataset(train_imgs_ds, train_gts_ds)
     val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
 
-    callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
-                 construct_tensorboard_callback(config, "PLDepth")]
+    callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule)]
     verbosity = 1
     if model_checkpoints:
         callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
 
-    model_params.log_parameters()
+    # model_params.log_parameters()
 
     # Apply preprocessing
     def preprocess_ds(loc_x, loc_y):
         return preprocess_fn(loc_x), loc_y
 
     train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
     val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    steps_per_epoch = int(20200 / batch_size)
-    model.fit(x=train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch,
-              callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
-    # Save the weights
-    timestr = time.strftime("%d%m%y-%H%M%S")
-    # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
-    model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'model20k_rnd_sampling.h5')
-
-    data_path = config["DATA"]["HR_WSI_DEBUG_PATH"]
-    dao_a = HRWSITFDataAccessObject(data_path, model_input_shape, seed=42)
-    test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset()
-
-    active_train_ds = active_learning_data_provider(test_imgs_ds, test_gts_ds, model, batch_size=batch_size, split_num=32)
-    active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     steps_per_epoch = int(1000 / batch_size)
-    #fit active samples over the prev trainedd model.
-    model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch, validation_data=val_ds, verbose=1)
-    # Save the weights
-    timestr = time.strftime("%d%m%y-%H%M%S")
-    # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'active_weight_rnd_sampling')
-    model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'active_model_rnd_sampling.h5')
+    hist = model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+                     callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
+
+    eval_ds = list(val_imgs_ds.as_numpy_iterator())[:50]
+    eval_gt = list(val_gts_ds.as_numpy_iterator())[:50]
+
+    err_vec1 = []
+    for i in range(len(eval_ds)):
+        pred = model.predict(np.array([eval_ds[i]]), batch_size=None)
+        err = ordinal_error(pred[0], eval_gt[i])
+        err_vec1.append(err)
+
+    los = np.mean(err_vec1)
+
+    return {"loss": los, "status": STATUS_OK}
 
 
 if __name__ == "__main__":
     perform_pldepth_experiment()
+    print("done!!")

@@ -25,9 +25,10 @@ sweep_config_i = {'method': 'bayes',
                     'epochs': {'distribution': 'constant', 'value': 8},
                     'lr': {'distribution': 'log_uniform', 'max': -2, 'min': -7},
                     'ranking_size': {'distribution': 'int_uniform', 'max': 30, 'min': 3},
-                    'rpi': {'distribution': 'int_uniform', 'max': 200, 'min': 10},
-                    'lr_multi': {'distribution': 'uniform', 'max': 0.5, 'min': 0},
-                    'sampling_type': {'distribution':'constant', 'value':1}
+                    'rpi': {'distribution': 'constant', 'value': 50},
+                    'lr_multi': {'distribution':'constant', 'value':0.35} , #{'distribution': 'uniform', 'max': 0.5, 'min': 0},
+                    'sampling_type': {'distribution':'constant', 'value':1},
+                    'dataset_size': {'distribution':'constant', 'value':5355}
 
                 }
                 }
@@ -39,10 +40,11 @@ sweep_config_t = {'method': 'bayes',
                     'batch_size': {'distribution': 'constant', 'value': 4},
                     'epochs': {'distribution': 'constant', 'value': 8},
                     'lr': {'distribution': 'log_uniform', 'max': -2, 'min': -7},
-                    'ranking_size': {'distribution': 'int_uniform', 'max': 25, 'min': 3},
-                    'rpi': {'distribution': 'int_uniform', 'max': 200, 'min': 10},
-                    'lr_multi': {'distribution': 'uniform', 'max': 0.5, 'min': 0},
-                    'sampling_type': {'distribution':'constant', 'value':0}
+                    'ranking_size': {'distribution': 'int_uniform', 'max': 30, 'min': 3},
+                    'rpi': {'distribution': 'constant', 'value': 50},
+                    'lr_multi': {'distribution':'constant', 'value':0.35}  ,#{'distribution': 'uniform', 'max': 0.5, 'min': 0},
+                    'sampling_type': {'distribution':'constant', 'value':0},
+                    'dataset_size': {'distribution':'constant', 'value':5355}
 
                 }
                 }
@@ -57,8 +59,19 @@ activ_sweep = { 'method': 'bayes',
                 'ranking_size': {'distribution': 'int_uniform', 'max': 30, 'min': 2},
                 'batch_size': {'distribution': 'constant', 'value': 4},
                 'epochs': {'distribution': 'constant', 'value': 6},
-                 'rpi': {'distribution': 'constant', 'value':50}
+                 'rpi': {'distribution': 'constant', 'value':50},
+                 'num_split':{"values": [14, 16,32, 56, 64]}
              }
+                }
 
-
-}
+activ_sweep2 = { 'method': 'bayes',
+                'metric': {'goal': 'minimize', 'name': 'val_loss'},
+             'parameters': {
+                'lr': {'distribution': 'constant', 'value': 0.0063},
+                'lr_multi': {'distribution': 'constant', 'value':0.02},
+                'ranking_size': {'distribution': 'int_uniform', 'max': 25, 'min': 4},
+                'batch_size': {'distribution': 'constant', 'value': 4},
+                'epochs': {'distribution': 'constant', 'value': 6},
+                 'num_split':{"values": [14, 16,32, 56, 64]}
+             }
+                 }
