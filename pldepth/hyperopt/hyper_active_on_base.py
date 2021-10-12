@@ -14,7 +14,7 @@ import tensorflow as tf
 
 from pldepth.util.env import init_env
 from pldepth.models.models_meta import ModelParameters, get_model_type_by_name
-from pldepth.util.training_utils import LearningRateScheduleProvider
+from pldepth.util.training_utils import LearningRateScheduleProvider, SGDRScheduler, LearningRateLoggingCallback
 from pldepth.util.tracking_utils import construct_model_checkpoint_callback, construct_tensorboard_callback
 from pldepth.active_learning.active_learning_method import active_learning_data_provider
 from pldepth.models.pl_hourglass import EffNetFullyFledged
@@ -23,13 +23,14 @@ import numpy as np
 from pldepth.active_learning.metrics import ordinal_error
 import wandb
 from pldepth.active_learning.metrics import calc_err
+from wandb.keras import WandbCallback
 
 
 
 
 
 def active_pldepth_experiment(pars=None):
-    with wandb.init(config=pars):
+    with wandb.init(settings=wandb.Settings(_disable_stats=True),config=pars):
         w_config = wandb.config
 
 
@@ -81,19 +82,26 @@ def active_pldepth_experiment(pars=None):
         loss_fn = HourglassNegativeLogLikelihood(ranking_size=ranking_size,
                                                  batch_size=batch_size,
                                                  debug=False)
+        steps_per_epoch = int(1000 / batch_size)
+        schedule = SGDRScheduler(min_lr=initial_lr * 0.01,
+                                 max_lr=initial_lr,
+                                 steps_per_epoch=steps_per_epoch,
+                                 lr_decay=lr_multi,
+                                 cycle_length=1,
+                                 mult_factor=1)
 
-        optimizer = keras.optimizers.Adam(learning_rate=lr_sched_prov.get_lr_schedule(0), amsgrad=True)
+        optimizer = keras.optimizers.Adam(learning_rate=initial_lr, amsgrad=True)
         # load the model here
         model = tf.keras.models.load_model(load_path,
                                            custom_objects={'EffNetFullyFledged': EffNetFullyFledged}, compile=False)
         model.compile(loss=loss_fn, optimizer=optimizer)
         #model.summary()
 
-        callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule)
+        callbacks = [TerminateOnNaN(),schedule, LearningRateLoggingCallback(),
+                     WandbCallback() #LearningRateScheduler(lr_sched_prov.get_lr_schedule)
                      ]
         verbosity = 1
-        if model_checkpoints:
-            callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
+
 
         # Apply preprocessing
         def preprocess_ds(loc_x, loc_y):
@@ -116,7 +124,7 @@ def active_pldepth_experiment(pars=None):
         active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
         # fit active samples over the prev trained model.ls
-        steps_per_epoch = int(1000 / batch_size)
+
         print("fit active sampled data")
         model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch,
                     callbacks=callbacks, verbose=1)

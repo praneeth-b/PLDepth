@@ -74,6 +74,8 @@ def perform_pldepth_experiment(pars=None):
             sampling_strategy = InformationScoreBasedSampling(model_params)
 
         else :
+            print("wrong sampling type")
+            return 13
             sampling_strategy = InformationScoreBasedSampling(model_params)
 
         model_params.set_parameter('sampling_strategy', sampling_strategy)

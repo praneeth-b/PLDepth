@@ -30,7 +30,7 @@ if __name__ == "__main__":
         print("Active learning sweep")
         sweep_id = wandb.sweep(activ_sweep, project="Active_sweep")
         print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&",sweep_id)
-        wandb.agent(sweep_id, active_pldepth_experiment, count=30)
+        wandb.agent(sweep_id, active_pldepth_experiment, count=25)
 
     else:
         print("wrong selection")

@@ -106,7 +106,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     # model.summary()
 
     # Compile model
-    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[10, 15, 25, 30], warmup=warmup, multiplier=lr_multi)
+    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 8, 15, 20, 25, 30], warmup=warmup, multiplier=lr_multi)
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                              batch_size=model_params.get_parameter("batch_size"),
                                              debug=False)
@@ -117,9 +117,9 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     #     custom_objects={'EffNetFullyFledged': EffNetFullyFledged}, compile=False)
 
     model.compile(loss=loss_fn, optimizer=optimizer)
-    model.summary()
+    #model.summary()
 
-    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_TEST_PATH"], model_input_shape, seed)
+    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_1K_PATH"], model_input_shape, seed)
 
     train_imgs_ds, train_gts_ds, train_cons_masks, = dao.get_training_dataset()
     val_imgs_ds, val_gts_ds, val_cons_masks, = dao.get_validation_dataset()
@@ -150,19 +150,21 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     new_sampling_strategy = PurelyMaskedRandomSamplingStrategy(model_params)
     model_params.set_parameter('sampling_strategy', new_sampling_strategy)
     print("****** new sampling strategy******: ", model_params.get_parameter("sampling_strategy"))
-    data_path = config["DATA"]["HR_WSI_1K_PATH"]
-    dao_r = HRWSITFDataAccessObject(data_path, model_input_shape, seed=seed)
+    data_path_n = config["DATA"]["HR_WSI_ACT_PATH"]
+    dao_r = HRWSITFDataAccessObject(data_path_n, model_input_shape, seed=seed)
     test_imgs_ds, test_gts_ds, test_cons_masks = dao_r.get_training_dataset()
 
     rnd_data_provider = HourglassLargeScaleDataProvider(model_params, test_cons_masks, val_cons_masks,
                                                     augmentation=model_params.get_parameter("augmentation"),
                                                     loss_type=loss_type)
 
-    r_train_ds = data_provider.provide_train_dataset(train_imgs_ds, train_gts_ds)
+    r_train_ds = data_provider.provide_train_dataset(test_imgs_ds, test_gts_ds)
     r_train_ds = r_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    print("fit active sampled data")
-    n_epochs = epochs*2
+    print("fit random sampled data")
+    steps_per_epoch = int(5000/batch_size)
+    n_epochs = epochs+10
+    lr_sched_prov.init_lr = initial_lr*3
     model.fit(x=r_train_ds, initial_epoch=epochs, epochs=n_epochs, steps_per_epoch=steps_per_epoch,
               validation_data=val_ds, verbose=1, callbacks=callbacks)
 

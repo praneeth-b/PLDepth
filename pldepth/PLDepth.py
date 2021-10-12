@@ -114,11 +114,19 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     # Compile model
     lr_sched_prov =  LearningRateScheduleProvider(init_lr=initial_lr, steps=[10,15,20,25], warmup=warmup, multiplier=lr_multi)
 
+    # schedule = SGDRScheduler(min_lr=initial_lr*0.01,
+    #                        max_lr= initial_lr,
+    #                        steps_per_epoch=steps_per_epoch,
+    #                        lr_decay=lr_multi,
+    #                        cycle_length=1,
+    #                        mult_factor=1)
+
+
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                              batch_size=model_params.get_parameter("batch_size"),
                                              debug=False)
 
-    optimizer = keras.optimizers.Adam(learning_rate=lr_sched_prov.get_lr_schedule(0), amsgrad=True)
+    optimizer = keras.optimizers.Adam(learning_rate=initial_lr, amsgrad=True)
     model.compile(loss=loss_fn, optimizer=optimizer)
 
     if load_model_path != "":
@@ -159,16 +167,12 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     def preprocess_ds(loc_x, loc_y):
         return preprocess_fn(loc_x), loc_y
 
-    #train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    #val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    steps_per_epoch = int(5000 / batch_size)
+    steps_per_epoch = int((ds_size * 14 / 15) / batch_size)
     model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
                callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
-    # Save the weights
-
-    # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
-    #model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'best-hyp_rnd_sampling.h5')
 
     #evaluate on test data:
     vds = list(eval_imgs_ds.as_numpy_iterator())

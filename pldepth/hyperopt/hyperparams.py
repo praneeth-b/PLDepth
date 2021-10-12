@@ -54,13 +54,13 @@ sweep_config_t = {'method': 'bayes',
 activ_sweep = { 'method': 'bayes',
                 'metric': {'goal': 'minimize', 'name': 'val_loss'},
              'parameters': {
-                'lr': {'distribution': 'log_uniform', 'max': -1, 'min': -7},
-                'lr_multi': {'distribution': 'uniform', 'max': 0.5, 'min': 0},
-                'ranking_size': {'distribution': 'int_uniform', 'max': 30, 'min': 2},
+                'lr': {'distribution': 'log_uniform', 'max': -3, 'min': -7},
+                'lr_multi': {'distribution': 'uniform', 'max': 0.95, 'min': 0.5},
+                'ranking_size': {'distribution':'constant', 'value': 20},
                 'batch_size': {'distribution': 'constant', 'value': 4},
                 'epochs': {'distribution': 'constant', 'value': 6},
                  'rpi': {'distribution': 'constant', 'value':50},
-                 'num_split':{"values": [14, 16,32, 56, 64]}
+                 'num_split':{'distribution': 'constant', 'value': 32}
              }
                 }
 
