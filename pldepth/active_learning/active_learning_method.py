@@ -36,7 +36,7 @@ def active_sampling(in_edges, pred_edges, split_num):
             pts[i] = np.array([st_r, st_c])
 
     # sorting the hausdorf dist
-    idx = np.argsort(dist)
+    idx = np.argsort(dist)[:1000]  # taking only 1000 samples per img for activ learning
     dist = dist[idx]
     pts = pts[idx]
     pos = pts[:, 0] * 448 + pts[:, 1]

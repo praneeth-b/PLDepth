@@ -28,9 +28,9 @@ if __name__ == "__main__":
 
     elif typ==2:
         print("Active learning sweep")
-        sweep_id = wandb.sweep(activ_sweep, project="Active_sweep")
+        sweep_id = wandb.sweep(activ_sweep2, project="Active_sweep")
         print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&",sweep_id)
-        wandb.agent(sweep_id, active_pldepth_experiment, count=25)
+        wandb.agent(sweep_id, active_pldepth_experiment, count=9)
 
     else:
         print("wrong selection")

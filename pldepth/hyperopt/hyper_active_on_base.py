@@ -43,6 +43,7 @@ def active_pldepth_experiment(pars=None):
         initial_lr = w_config['lr']
         lr_multi = w_config['lr_multi']
         split_num = w_config['num_split']
+        ds_size = w_config['ds_size']
         equality_threshold = 0.03
         model_checkpoints = False
         load_model_path = ""
@@ -77,18 +78,18 @@ def active_pldepth_experiment(pars=None):
         m, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
 
         # Compile model
-        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[4], warmup=warmup,
+        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[4,8], warmup=warmup,
                                                      multiplier=lr_multi)
         loss_fn = HourglassNegativeLogLikelihood(ranking_size=ranking_size,
                                                  batch_size=batch_size,
                                                  debug=False)
-        steps_per_epoch = int(1000 / batch_size)
-        schedule = SGDRScheduler(min_lr=initial_lr * 0.01,
-                                 max_lr=initial_lr,
-                                 steps_per_epoch=steps_per_epoch,
-                                 lr_decay=lr_multi,
-                                 cycle_length=1,
-                                 mult_factor=1)
+        steps_per_epoch = int(ds_size / batch_size)
+        # schedule = SGDRScheduler(min_lr=initial_lr * 0.01,
+        #                          max_lr=initial_lr,
+        #                          steps_per_epoch=steps_per_epoch,
+        #                          lr_decay=lr_multi,
+        #                          cycle_length=1,
+        #                          mult_factor=1)
 
         optimizer = keras.optimizers.Adam(learning_rate=initial_lr, amsgrad=True)
         # load the model here
@@ -97,7 +98,7 @@ def active_pldepth_experiment(pars=None):
         model.compile(loss=loss_fn, optimizer=optimizer)
         #model.summary()
 
-        callbacks = [TerminateOnNaN(),schedule, LearningRateLoggingCallback(),
+        callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
                      WandbCallback() #LearningRateScheduler(lr_sched_prov.get_lr_schedule)
                      ]
         verbosity = 1
@@ -108,11 +109,11 @@ def active_pldepth_experiment(pars=None):
             return preprocess_fn(loc_x), loc_y
 
         print("Start active sampling")
-        data_path = config["DATA"]["HR_WSI_TEST_PATH"]
+        data_path = config["DATA"]["HR_WSI_10K_PATH"]    # todo data path
         dao_a = HRWSITFDataAccessObject(data_path, model_input_shape, seed)
-        test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset()
+        test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset(size=ds_size)
 
-        val_imgs_ds, val_gts_ds, val_cons_masks = dao_a.get_validation_dataset()
+        val_imgs_ds, val_gts_ds, val_cons_masks = dao_a.get_validation_dataset(size=200)
 
         data_provider = HourglassLargeScaleDataProvider(model_params, test_cons_masks, val_cons_masks,
                                                         augmentation=False,
@@ -126,7 +127,7 @@ def active_pldepth_experiment(pars=None):
         # fit active samples over the prev trained model.ls
 
         print("fit active sampled data")
-        model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch,
+        model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch, validation_data=val_ds,
                     callbacks=callbacks, verbose=1)
         vds = list(val_imgs_ds.as_numpy_iterator())
         vgt = list(val_gts_ds.as_numpy_iterator())

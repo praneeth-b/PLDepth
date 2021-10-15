@@ -20,8 +20,12 @@ class HRWSITFDataAccessObject(TFDataAccessObject):
             return im_ds.take(size), labels_ds.take(size), cons_ds.take(size)
 
 
-    def get_validation_dataset(self):
-        return self.construct_raw_file_dataset('val', zip_ds=False, shuffle=False)
+    def get_validation_dataset(self, size=None):
+        if not size:
+            return self.construct_raw_file_dataset('val', zip_ds=False, shuffle=False)
+        else:
+            im_ds, labels_ds, cons_ds = self.construct_raw_file_dataset('val', zip_ds=False, shuffle=False)
+            return im_ds.take(size), labels_ds.take(size), cons_ds.take(size)
 
     def get_test_dataset(self, zip_ds=True, exclude_mask=True):
         result_ds = self.construct_raw_file_dataset('val', zip_ds=zip_ds, shuffle=False)
