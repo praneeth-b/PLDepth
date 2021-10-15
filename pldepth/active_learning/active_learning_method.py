@@ -3,9 +3,10 @@ from pldepth.active_learning.preprocess_utils import splitImage, unsharp_mask, a
 from pldepth.active_learning.metrics import hausdorf_dist, hausdorff_pair
 import cv2
 import tensorflow as tf
+import wandb
 
 #split_num = 32
-
+img_shape = [448,448,3]
 
 def active_sampling(in_edges, pred_edges, split_num):
     """
@@ -31,7 +32,7 @@ def active_sampling(in_edges, pred_edges, split_num):
         else:
             st_r = int(i / split_num) * int(split_in.shape[1])
             st_c = int((i % split_num) * split_in.shape[2])
-            dist[i] = 1000  # a random large value
+            dist[i] = np.sqrt(2*(img_shape[0]/split_num)**2)  # max dist in split imgs diagonal
             pts[i] = np.array([st_r, st_c])
 
     # sorting the hausdorf dist
@@ -39,8 +40,8 @@ def active_sampling(in_edges, pred_edges, split_num):
     dist = dist[idx]
     pts = pts[idx]
     pos = pts[:, 0] * 448 + pts[:, 1]
-
-    return pos.astype(np.uint32), pts.astype(np.uint32)    # pos, pos_XY  1024x2
+    wandb.log({'hausdorf_dist_mean': np.mean(dist), 'hausdorf_dist_variance': np.var(dist)})
+    return pos.astype(np.uint32), pts.astype(np.uint32) , np.mean(dist) , np.var(dist)  # pos, pos_XY  1024x2
 
 
 def oracle(img, img_gts, pos_xy, ranking_size):
@@ -74,10 +75,12 @@ def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranki
     sample_lists = [] #np.zeros([len(img_ds_in), split_num*split_num, 6])  # samples per img(14x14), ranking size
 
     i = 0
+    stat_mean = []
+    stat_var = []
     for img_in, gts_in in zip(img_ds_in, img_gt_in):
         img_o = cv2.cvtColor(img_in, cv2.COLOR_RGB2GRAY)
         img_o = cv2.normalize(img_o, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        img_o = cv2.medianBlur(img_o, 15)  # cv2.blur(img_o, ksize=(7,7))    # blur amt
+        img_o = cv2.medianBlur(img_o, 15)  # cv2.blur(img_o, ksize=(7,7))
         # Using the Canny filter to get contours of orig image
         in_edges = auto_canny(img_o)
 
@@ -88,11 +91,15 @@ def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranki
         pred_im_sharp = unsharp_mask(pred_im_out)
         pred_edges = auto_canny(pred_im_sharp)
 
-        pos, pos_xy = active_sampling(in_edges, pred_edges,split_num)
+        pos, pos_xy, img_dist, img_var = active_sampling(in_edges, pred_edges, split_num)
         oracle_samples = oracle(img_in, gts_in, pos_xy, ranking_size)
         sample_lists.append(oracle_samples)
         # print("the img is",i)
         i+=1
+        stat_mean.append(img_dist)
+        stat_var.append(img_var)
+
+    wandb.log({'avg_hd_mean':np.mean(stat_mean), 'avg_hd_var': np.mean(stat_var)})
 
     sample_list_tf = tf.data.Dataset.from_tensor_slices(sample_lists)
 

@@ -77,3 +77,4 @@ def calc_err(model, test_im, test_gt):
         ev.append(err)
 
     return np.mean(ev)
+
