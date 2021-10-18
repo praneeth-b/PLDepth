@@ -67,13 +67,14 @@ activ_sweep = { 'method': 'bayes',
 activ_sweep2 = { 'method': 'grid',
                 'metric': {'goal': 'minimize', 'name': 'val_loss'},
              'parameters': {
-                'lr': {'distribution': 'constant', 'value': 0.0063},
-                'lr_multi': {'distribution': 'constant', 'value':0.02},
-                'ranking_size': {'distribution': 'int_uniform', 'max': 25, 'min': 4},
+                'lr': {'distribution': 'constant', 'value': 0.0033},
+                'lr_multi': {'distribution': 'constant', 'value':0.3},
+                'ranking_size': {'distribution': 'constant', 'value':20},
                 'batch_size': {'distribution': 'constant', 'value': 4},
-                'epochs': {'distribution': 'constant', 'value': 6},
-                 'num_split': {'distribution': 'constant', 'value': 56} ,  #{"values": [14, 16,32, 56, 64]}
-                 'ds_size':{"values": [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]}
+                'epochs': {'distribution': 'constant', 'value': 10},
+                 'num_split': {'distribution': 'constant', 'value': 32} ,  #{"values": [14, 16,32, 56, 64]}
+                 'ds_size' : {"values": [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]},
+                 'sampling_type': {'distribution':'constant', 'value':1},
              }
                  }
 

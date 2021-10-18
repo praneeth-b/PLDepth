@@ -8,6 +8,17 @@ import wandb
 #split_num = 32
 img_shape = [448,448,3]
 
+
+def get_edge_pixel(img):
+    x, y = img.shape
+    idx = np.nonzero(img)
+    if idx[0].size != 0:
+        i = np.random.choice(idx[0].shape[0])
+        return idx[0][i], idx[1][i]
+
+    else:
+        return x / 2, y / 2
+
 def active_sampling(in_edges, pred_edges, split_num):
     """
     pass the edge map of input and predicted depth image respectively
@@ -30,9 +41,10 @@ def active_sampling(in_edges, pred_edges, split_num):
             pts[i] = np.array([st_r, st_c])
 
         else:
-            st_r = int(i / split_num) * int(split_in.shape[1])
-            st_c = int((i % split_num) * split_in.shape[2])
-            dist[i] = np.sqrt(2*(img_shape[0]/split_num)**2)  # max dist in split imgs diagonal
+            r , c = get_edge_pixel(split_in[i])
+            st_r = int(i / split_num) * int(split_in.shape[1]) + r
+            st_c = int((i % split_num) * split_in.shape[2]) + c
+            dist[i] = 100    # high val min 7x7 = ~90  #np.sqrt(2*(img_shape[0]/split_num)**2)  # max dist in split imgs diagonal
             pts[i] = np.array([st_r, st_c])
 
     # sorting the hausdorf dist

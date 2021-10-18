@@ -158,7 +158,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
                                                     augmentation=model_params.get_parameter("augmentation"),
                                                     loss_type=loss_type)
 
-    r_train_ds = data_provider.provide_train_dataset(test_imgs_ds, test_gts_ds)
+    r_train_ds = rnd_data_provider.provide_train_dataset(test_imgs_ds, test_gts_ds)
     r_train_ds = r_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     print("fit random sampled data")

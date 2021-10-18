@@ -3,6 +3,8 @@ import os
 from pldepth.hyperopt.hyperparams import sweep_config_i, sweep_config_t, activ_sweep, activ_sweep2
 from pldepth.hyperopt.hyper_PL_depth import perform_pldepth_experiment
 from pldepth.hyperopt.hyper_active_on_base import active_pldepth_experiment
+from pldepth.hyperopt.hyper_base_PLD import perform_base_PLD
+from pldepth.hyperopt.hyper_active_PLD import perform_active_PLD
 import argparse
 
 if __name__ == "__main__":
@@ -30,7 +32,7 @@ if __name__ == "__main__":
         print("Active learning sweep")
         sweep_id = wandb.sweep(activ_sweep2, project="Active_sweep")
         print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&",sweep_id)
-        wandb.agent(sweep_id, active_pldepth_experiment, count=9)
+        wandb.agent(sweep_id, perform_base_PLD, count=9)
 
     else:
         print("wrong selection")
