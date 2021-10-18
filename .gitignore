@@ -49,3 +49,6 @@ trial_dump/
 trials/
 conf/
 pldepth/todel/
+seg_data/
+wandb/
+mlruns/
