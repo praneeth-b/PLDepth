@@ -57,8 +57,8 @@ def active_pldepth_experiment(pars=None):
         dataset = "HR-WSI"
         dataset_type = get_dataset_type_by_name(dataset)
         loss_type = DepthLossType.NLL
-        #load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/model-best-inf1k.h5'
-        load_path = '/home/praneeth/projects/thesis/git/PLDepth/pldepth/weights/100921-092654base_10rpi_1k_30ep_6r_model_rnd_sampling.h5'
+        load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/model-best-inf1k.h5'
+        #load_path = '/home/praneeth/projects/thesis/git/PLDepth/pldepth/weights/100921-092654base_10rpi_1k_30ep_6r_model_rnd_sampling.h5'
         # Run meta information
         model_params = ModelParameters()
         model_params.set_parameter("model_type", model_type)

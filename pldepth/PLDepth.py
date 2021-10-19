@@ -132,7 +132,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     if load_model_path != "":
         model.load_weights(load_model_path)
 
-    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_ROOT_PATH"], model_input_shape, seed)
+    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_POOL_PATH"], model_input_shape, seed)
 
     all_imgs_ds, all_gts_ds, all_cons_masks = dao.get_training_dataset(size=ds_size)
     val_imgs_ds = all_imgs_ds.take(ds_size//15)

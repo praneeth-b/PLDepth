@@ -52,7 +52,7 @@ def active_sampling(in_edges, pred_edges, split_num):
     dist = dist[idx]
     pts = pts[idx]
     pos = pts[:, 0] * 448 + pts[:, 1]
-    wandb.log({'hausdorf_dist_mean': np.mean(dist), 'hausdorf_dist_variance': np.var(dist)})
+    #wandb.log({'hausdorf_dist_mean': np.mean(dist), 'hausdorf_dist_variance': np.var(dist)})
     return pos.astype(np.uint32), pts.astype(np.uint32) , np.mean(dist) , np.var(dist)  # pos, pos_XY  1024x2
 
 
@@ -76,7 +76,7 @@ def oracle(img, img_gts, pos_xy, ranking_size):
     return result_buffer   # sort and return top 200   1024/6 x 6 x 2
 
 
-def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranking_size=6, split_num=32):
+def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranking_size=6, split_num=32, sigma=0.33):
     """
     inputs are a dataset of images and their respective ground truths
     """
@@ -101,7 +101,7 @@ def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranki
         pred_ele = np.squeeze(pred_ele)
         pred_im_out = cv2.normalize(pred_ele, None, 0, 255, cv2.NORM_MINMAX)
         pred_im_sharp = unsharp_mask(pred_im_out)
-        pred_edges = auto_canny(pred_im_sharp)
+        pred_edges = auto_canny(pred_im_sharp, sigma=sigma)
 
         pos, pos_xy, img_dist, img_var = active_sampling(in_edges, pred_edges, split_num)
         oracle_samples = oracle(img_in, gts_in, pos_xy, ranking_size)

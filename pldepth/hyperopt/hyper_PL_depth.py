@@ -2,7 +2,7 @@ from pldepth.data.dao.hr_wsi import HRWSITFDataAccessObject
 from pldepth.data.io_utils import get_dataset_type_by_name
 from pldepth.data.providers.hourglass_provider import HourglassLargeScaleDataProvider
 from pldepth.data.sampling import ThresholdedMaskedRandomSamplingStrategy, InformationScoreBasedSampling, \
-    MaskedRandomSamplingStrategy
+    PurelyMaskedRandomSamplingStrategy
 from pldepth.losses.losses_meta import DepthLossType
 from pldepth.losses.nll_loss import HourglassNegativeLogLikelihood
 from pldepth.models.PLDepthNet import get_pl_depth_net
@@ -73,10 +73,13 @@ def perform_pldepth_experiment(pars=None):
         elif sampling_type == 1:
             sampling_strategy = InformationScoreBasedSampling(model_params)
 
+        elif sampling_type == 3:
+            sampling_strategy = PurelyMaskedRandomSamplingStrategy(model_params)
+
         else :
             print("wrong sampling type")
             return 13
-            sampling_strategy = InformationScoreBasedSampling(model_params)
+
 
         model_params.set_parameter('sampling_strategy', sampling_strategy)
 
@@ -87,7 +90,7 @@ def perform_pldepth_experiment(pars=None):
         # model.summary()
 
         # Compile model
-        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[6, 10], warmup=warmup,
+        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 10, 15], warmup=warmup,
                                                      multiplier=lr_multi)
         loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                                  batch_size=model_params.get_parameter("batch_size"),
@@ -99,7 +102,7 @@ def perform_pldepth_experiment(pars=None):
         if load_model_path != "":
             model.load_weights(load_model_path)
 
-        dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_ROOT_PATH"], model_input_shape, seed)
+        dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_POOL_PATH"], model_input_shape, seed)
 
         all_imgs_ds, all_gts_ds, all_cons_masks = dao.get_training_dataset(size=ds_size)
         val_imgs_ds = all_imgs_ds.take(ds_size // 15)
@@ -131,9 +134,10 @@ def perform_pldepth_experiment(pars=None):
 
         train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-        #val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        #val_ds = val_ds.map(preprocess_ds, num_parallel_calls=y
 
-        steps_per_epoch = int(5000 / batch_size)
+
+        steps_per_epoch = int((ds_size*14/15) / batch_size)
         model.fit(x=train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch,
                  callbacks=callbacks, verbose=verbosity)
         

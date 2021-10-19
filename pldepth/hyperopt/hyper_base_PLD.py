@@ -23,7 +23,6 @@ from wandb.keras import WandbCallback
 from keras import backend as K
 
 import os
-
 from pldepth.active_learning.metrics import calc_err
 
 def perform_base_PLD(pars=None):
@@ -46,6 +45,7 @@ def perform_base_PLD(pars=None):
         split_num = w_config['num_split']
         sampling_type = w_config['sampling_type']
         ds_size = w_config['ds_size']
+        canny_sigma = w_config['canny_sigma']
 
         config = init_env(autolog_freq=1, seed=seed)
 
@@ -91,7 +91,7 @@ def perform_base_PLD(pars=None):
         # model.summary()
 
         # Compile model
-        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 8, 15, 20, 25], warmup=warmup,
+        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[4, 8, 15, 20, 25], warmup=warmup,
                                                      multiplier=lr_multi)
         loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                                  batch_size=model_params.get_parameter("batch_size"),
@@ -146,17 +146,16 @@ def perform_base_PLD(pars=None):
         test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset()
 
         active_train_ds = active_learning_data_provider(test_imgs_ds, test_gts_ds, model, batch_size=batch_size,
-                                                        ranking_size=ranking_size, split_num=split_num)
+                                                        ranking_size=ranking_size, split_num=split_num, sigma=canny_sigma)
         active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-        lr_sched_prov.init_lr = initial_lr * 3
+        lr_sched_prov.init_lr = initial_lr * 2
 
         steps_per_epoch = int(3000 / batch_size)
         print("fit active sampled data")
-        n_epochs = epochs + 5
+        n_epochs = epochs + 4
         model.fit(x=active_train_ds, initial_epoch=epochs, epochs=n_epochs, steps_per_epoch=steps_per_epoch,
-                  validation_data=val_ds, verbose=1,
-                  callbacks=callbacks)
+                  validation_data=val_ds, verbose=1, callbacks=callbacks)
 
         # # evaluate on test data:
         # vds = list(val_imgs_ds.as_numpy_iterator())

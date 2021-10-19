@@ -35,7 +35,7 @@ def perform_active_PLD(pars=None):
         batch_size = w_config['batch_size']
         seed = 0
         ranking_size = w_config['ranking_size']
-        rankings_per_image = 50 # w_config['rpi']
+        rankings_per_image = 50 #w_config['rpi']
         initial_lr = w_config['lr']
         lr_multi = w_config['lr_multi']
         equality_threshold = 0.03
@@ -45,7 +45,7 @@ def perform_active_PLD(pars=None):
         warmup = 0
         split_num = w_config['num_split']
         sampling_type = w_config['sampling_type']
-        ds_size = w_config['ds_size']
+        ds_size = w_config['dataset_size']
 
         config = init_env(autolog_freq=1, seed=seed)
 
@@ -150,10 +150,9 @@ def perform_active_PLD(pars=None):
 
         steps_per_epoch = int(ds_size / batch_size)
         print("fit active sampled data")
-        n_epochs = epochs + 6
+        n_epochs = epochs + 4
         model.fit(x=active_train_ds, initial_epoch=epochs, epochs=n_epochs, steps_per_epoch=steps_per_epoch,
-                  validation_data=val_ds, verbose=1,
-                  callbacks=callbacks)
+                  validation_data=val_ds, verbose=1, callbacks=callbacks)
 
         # Save the weights
         timestr = time.strftime("%d%m%y-%H%M%S")
