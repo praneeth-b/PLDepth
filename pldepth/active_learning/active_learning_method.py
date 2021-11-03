@@ -6,7 +6,7 @@ import tensorflow as tf
 import wandb
 
 #split_num = 32
-img_shape = [448,448,3]
+img_shape = [224,224,3]
 
 
 def get_edge_pixel(img):
@@ -19,7 +19,7 @@ def get_edge_pixel(img):
     else:
         return x / 2, y / 2
 
-def active_sampling(in_edges, pred_edges, split_num):
+def active_sampling(in_edges, pred_edges, split_num, img_size=[224, 224, 3]):
     """
     pass the edge map of input and predicted depth image respectively
     """
@@ -44,19 +44,19 @@ def active_sampling(in_edges, pred_edges, split_num):
             r , c = get_edge_pixel(split_in[i])
             st_r = int(i / split_num) * int(split_in.shape[1]) + r
             st_c = int((i % split_num) * split_in.shape[2]) + c
-            dist[i] = 100    # high val min 7x7 = ~90  #np.sqrt(2*(img_shape[0]/split_num)**2)  # max dist in split imgs diagonal
+            dist[i] = 50    # high val min 7x7 = ~90  #np.sqrt(2*(img_shape[0]/split_num)**2)  # max dist in split imgs diagonal
             pts[i] = np.array([st_r, st_c])
 
     # sorting the hausdorf dist
-    idx = np.argsort(dist)[:1000]  # taking only 1000 samples per img for activ learning
+    idx = np.argsort(dist)  # taking only 1000 samples per img for activ learning
     dist = dist[idx]
     pts = pts[idx]
-    pos = pts[:, 0] * 448 + pts[:, 1]
+    pos = pts[:, 0] * img_size[0] + pts[:, 1]
     #wandb.log({'hausdorf_dist_mean': np.mean(dist), 'hausdorf_dist_variance': np.var(dist)})
     return pos.astype(np.uint32), pts.astype(np.uint32) , np.mean(dist) , np.var(dist)  # pos, pos_XY  1024x2
 
 
-def oracle(img, img_gts, pos_xy, ranking_size):
+def oracle(img, img_gts, pos_xy, ranking_size, img_size=[224,224,3]):
     list_size = ranking_size
     result_buffer = np.zeros([int(pos_xy.shape[0] / list_size), list_size, 2], dtype=np.float32)
     buf = np.zeros((list_size, 2))
@@ -66,7 +66,7 @@ def oracle(img, img_gts, pos_xy, ranking_size):
     for i in range(0, pos_xy.shape[0] - list_size, list_size):
 
         for k in range(list_size):
-            buf[k, 0] = pos_xy[i + k, 0] * 448 + pos_xy[i+k, 1]
+            buf[k, 0] = pos_xy[i + k, 0] * img_size[0] + pos_xy[i+k, 1]
             buf[k, 1] = img_gts[tuple(pos_xy[i + k])]
 
         ix = np.argsort(buf[:,1])[::-1]
@@ -76,12 +76,13 @@ def oracle(img, img_gts, pos_xy, ranking_size):
     return result_buffer   # sort and return top 200   1024/6 x 6 x 2
 
 
-def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranking_size=6, split_num=32, sigma=0.33):
+def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranking_size=6, split_num=32, sigma=0.9,
+                                  img_size=[224,224,3]):
     """
     inputs are a dataset of images and their respective ground truths
     """
-    img_ds_in = list(img_arr.as_numpy_iterator())
-    img_gt_in = list(img_gts_arr.as_numpy_iterator())
+    img_ds_in = img_arr  # list(img_arr.as_numpy_iterator())
+    img_gt_in = img_gts_arr  # list(img_gts_arr.as_numpy_iterator())
 
     a_ds_out = []
     sample_lists = [] #np.zeros([len(img_ds_in), split_num*split_num, 6])  # samples per img(14x14), ranking size
@@ -103,8 +104,8 @@ def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranki
         pred_im_sharp = unsharp_mask(pred_im_out)
         pred_edges = auto_canny(pred_im_sharp, sigma=sigma)
 
-        pos, pos_xy, img_dist, img_var = active_sampling(in_edges, pred_edges, split_num)
-        oracle_samples = oracle(img_in, gts_in, pos_xy, ranking_size)
+        pos, pos_xy, img_dist, img_var = active_sampling(in_edges, pred_edges, split_num, img_size)
+        oracle_samples = oracle(img_in, gts_in, pos_xy, ranking_size, img_size)
         sample_lists.append(oracle_samples)
         # print("the img is",i)
         i+=1
@@ -114,5 +115,14 @@ def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranki
     wandb.log({'avg_hd_mean':np.mean(stat_mean), 'avg_hd_var': np.mean(stat_var)})
 
     sample_list_tf = tf.data.Dataset.from_tensor_slices(sample_lists)
-
+    img_arr = tf.data.Dataset.from_tensor_slices(img_ds_in)
     return tf.data.Dataset.zip((img_arr, sample_list_tf)).batch(batch_size, drop_remainder=True).repeat()
+
+import tensorflow as tf
+from tensorflow.keras.utils import Sequence
+
+
+
+class ActiveGenerator(Sequence):
+    def __init__(self, ):
+        pass

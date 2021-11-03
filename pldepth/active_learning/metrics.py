@@ -69,11 +69,11 @@ def ordinal_error(op, gt, imsize=(448, 448), num=100):
     return 1 - accuracy
 
 
-def calc_err(model, test_im, test_gt):
+def calc_err(model, test_im, test_gt, img_size=(448,448)):
     ev = []
     for i in range(len(test_im)):
         pred = model.predict(np.array([test_im[i]]), batch_size=None)
-        err = ordinal_error(pred[0], test_gt[i])
+        err = ordinal_error(pred[0], test_gt[i], imsize=img_size)
         ev.append(err)
 
     return np.mean(ev)
