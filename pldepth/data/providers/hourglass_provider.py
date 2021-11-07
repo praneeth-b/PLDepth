@@ -13,7 +13,7 @@ from pldepth.util.str_literals import DONE_STR
 
 class HourglassLargeScaleDataProvider(TFDatasetDataProvider):
     def __init__(self, model_params, train_consistency_masks, val_consistency_masks, loss_type=DepthLossType.NLL,
-                 augmentation=False, sampling_eq_threshold=0.03):
+                 augmentation=False, sampling_eq_threshold=0.03, bs_factor=5):
         super().__init__(model_params)
         self.train_consistency_masks = train_consistency_masks
         self.val_consistency_masks = val_consistency_masks
@@ -24,6 +24,7 @@ class HourglassLargeScaleDataProvider(TFDatasetDataProvider):
         self.augmentation = augmentation
 
         self.loss_type = loss_type
+        self.bs_factor = bs_factor
 
     def provide_train_dataset(self, base_ds, base_ds_gts=None):
         shuffle_buffer_size = 1024
@@ -77,8 +78,8 @@ class HourglassLargeScaleDataProvider(TFDatasetDataProvider):
         if rankings_per_img is None:
             rankings_per_img = self.model_params.get_parameter("rankings_per_image")
 
-        result = sampling_strategy.sample_masked_point_batch(image, cons_mask, gt, rankings_per_img,
-                                                             batch_size_factor=5)
+        result = sampling_strategy.sample_masked_point_batch(image, cons_mask, gt, rankings_per_img
+                                                             )
 
         if not return_image:
             return result.astype(np.float32)

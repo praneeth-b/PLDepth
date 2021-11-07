@@ -76,7 +76,7 @@ def oracle(img, img_gts, pos_xy, ranking_size, img_size=[224,224,3]):
     return result_buffer   # sort and return top 200   1024/6 x 6 x 2
 
 
-def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranking_size=6, split_num=32, sigma=0.9,
+def active_learning_data_provider(img_arr, img_gts_arr, model, batch_size, ranking_size=6, split_num=32, sigma=1.8,
                                   img_size=[224,224,3]):
     """
     inputs are a dataset of images and their respective ground truths

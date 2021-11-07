@@ -4,7 +4,7 @@ import os
 from pldepth.data.dao.hr_wsi import HRWSITFDataAccessObject
 from pldepth.data.io_utils import get_dataset_type_by_name
 from pldepth.data.providers.hourglass_provider import HourglassLargeScaleDataProvider
-from pldepth.data.sampling import ThresholdedMaskedRandomSamplingStrategy, InformationScoreBasedSampling
+from pldepth.data.sampling import ThresholdedMaskedRandomSamplingStrategy, InformationScoreBasedSampling, PurelyMaskedRandomSamplingStrategy
 from pldepth.losses.losses_meta import DepthLossType
 from pldepth.losses.nll_loss import HourglassNegativeLogLikelihood
 from pldepth.models.PLDepthNet import get_pl_depth_net
@@ -38,7 +38,7 @@ from pldepth.active_learning.metrics import calc_err
 @click.option('--warmup', default=0, type=click.INT)
 @click.option('--sampling_type', default=1, type=click.INT)
 @click.option('--lr_multi', default=0.25, type=click.FLOAT)
-@click.option('--ds_size', default=5000, type=click.INT)
+@click.option('--ds_size', default=None, type=click.INT)
 def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_size, rankings_per_image, initial_lr,
                                equality_threshold, model_checkpoints, load_model_path, augmentation, warmup,
                                sampling_type, lr_multi, ds_size):
@@ -57,7 +57,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     timestr = time.strftime("%d%m%y-%H%M%S")
     #config = init_env(experiment_name=timestr+str(sampling_type), autolog_freq=1, seed=seed)
     print("the env var is: ", os.environ['WANDB_DIR']) 
-    run = wandb.init(project="Pldepth-train", settings=wandb.Settings(_disable_stats=True), # dir='/scratch/hpc-prf-deepmde/praneeth/wandb-logs',
+    run = wandb.init(project="dummy", settings=wandb.Settings(_disable_stats=True), # dir='/scratch/hpc-prf-deepmde/praneeth/wandb-logs',
                      config={'model_name': model_name,
                              'epochs': epochs,
                              'batch_size': batch_size,
@@ -100,26 +100,32 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     elif sampling_type == 1:
         sampling_strategy = InformationScoreBasedSampling(model_params)
 
-    else :
-        sampling_strategy = InformationScoreBasedSampling(model_params)
+    elif sampling_type == 3 :
+        sampling_strategy = PurelyMaskedRandomSamplingStrategy(model_params)
+    
+    else:
+        print("wrong selection of sampling type")
+        return 13
 
     model_params.set_parameter('sampling_strategy', sampling_strategy)
 
-    model_input_shape = [448, 448, 3]
+    # model_input_shape = [448, 448, 3]
+    model_input_shape = [224, 224, 3]
+
 
     # Get model
     model, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
     #model.summary()
 
     # Compile model
-    lr_sched_prov =  LearningRateScheduleProvider(init_lr=initial_lr, steps=[10,15,20,25], warmup=warmup, multiplier=lr_multi)
-
+    lr_sched_prov =  LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 10,15,20,25], warmup=warmup, multiplier=lr_multi)
+    steps_per_epoch = int((ds_size*14/15)/ batch_size)
     # schedule = SGDRScheduler(min_lr=initial_lr*0.01,
-    #                        max_lr= initial_lr,
-    #                        steps_per_epoch=steps_per_epoch,
-    #                        lr_decay=lr_multi,
-    #                        cycle_length=1,
-    #                        mult_factor=1)
+      #                     max_lr= initial_lr,
+       #                    steps_per_epoch=steps_per_epoch,
+        #                   lr_decay=lr_multi,
+         #                  cycle_length=1,
+          #                 mult_factor=1)
 
 
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
@@ -132,7 +138,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     if load_model_path != "":
         model.load_weights(load_model_path)
 
-    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_POOL_PATH"], model_input_shape, seed)
+    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_ROOT_PATH"], model_input_shape, seed)
 
     all_imgs_ds, all_gts_ds, all_cons_masks = dao.get_training_dataset(size=ds_size)
     val_imgs_ds = all_imgs_ds.take(ds_size//15)
@@ -158,7 +164,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     timestr = time.strftime("%d%m%y-%H%M%S")
     hist_file = timestr + "rnd_hist.log"
     callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
-                   WandbCallback(mode=min, log_batch_frequency=None)]
+                   WandbCallback(save_model=True)]
     verbosity = 1
     if model_checkpoints:
         callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
@@ -170,18 +176,24 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    steps_per_epoch = int((ds_size * 14 / 15) / batch_size)
-    model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
-               callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
+
+    # model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+    #            callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
+    # Save the weights
+
+    # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
+    #model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'best-hyp_rnd_sampling.h5')
 
     #evaluate on test data:
     vds = list(eval_imgs_ds.as_numpy_iterator())
     vgt = list(eval_gts_ds.as_numpy_iterator())
-    test_img = vds[:100]
-    test_gt = vgt[:100]
+    test_img = vds[:150]
+    test_gt = vgt[:150]
 
-    err = calc_err(model, test_img, test_gt)
+    err = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
     wandb.run.summary["test_error"] = err
+    print("Test error is : ",err)
+
 
 
 

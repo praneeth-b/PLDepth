@@ -144,7 +144,7 @@ class PurelyMaskedRandomSamplingStrategy(RandomSamplingStrategy):
 
         return result_matrix, dists
 
-    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=1.5):
+    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=1):
         result_matrix, dists = self.sample_masked_rankings(image, mask, gt, batch_size, batch_size_factor)
 
         return result_matrix[:batch_size]
@@ -209,19 +209,19 @@ class ThresholdedMaskedRandomSamplingStrategy(MaskedRandomSamplingStrategy):
 
 
 class InformationScoreBasedSampling(MaskedRandomSamplingStrategy):
-    def __init__(self, model_params, threshold=0.03, batch_size_factor=5, equality_penalty=-1000):
+    def __init__(self, model_params, threshold=0.03, equality_penalty=-1000):
         super().__init__(model_params)
         self.threshold = threshold
-        self.batch_size_factor = batch_size_factor
+        #self.batch_size_factor = batch_size_factor
         self.equality_penalty = equality_penalty
 
-    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=5):
+    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=10):
         min_dist = np.amin(gt)
         max_dist = np.amax(gt)
         # print(min_dist, "and max", max_dist)
 
-        expected_list = np.linspace(min_dist + 0.001, max_dist, self.num_points_per_sample)
-        # print(expected_list)
+        expected_list = np.linspace(min_dist + 0.001, max_dist, self.num_points_per_sample+1)[1:]
+        #print(expected_list)
         result_matrix, score_Id = self.sample_masked_rankings(image, mask, gt, batch_size, batch_size_factor)
         result_matrix = result_matrix[:, :, :2]
         for i in range(result_matrix.shape[0]):

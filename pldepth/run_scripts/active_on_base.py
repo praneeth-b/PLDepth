@@ -23,7 +23,6 @@ from wandb.keras import WandbCallback
 from pldepth.active_learning.metrics import calc_err
 
 
-
 @click.command()
 @click.option('--model_name', default='ff_effnet', help='Backbone model',
               type=click.Choice(['ff_redweb', 'ff_effnet'], case_sensitive=False))
@@ -43,14 +42,12 @@ from pldepth.active_learning.metrics import calc_err
 @click.option('--lr_multi', default=0.1, type=click.FLOAT)
 @click.option('--ds_size', default=None, type=click.INT)
 def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_size, rankings_per_image, initial_lr,
-                               equality_threshold, model_checkpoints, load_model_path, augmentation, warmup,lr_multi,
+                               equality_threshold, model_checkpoints, load_model_path, augmentation, warmup, lr_multi,
                                ds_size):
-
-
-
-    config = init_env(autolog_freq=1, seed=seed)
+    config = init_env(experiment_name='run1', autolog_freq=1, seed=seed)
     timestr = time.strftime("%d%m%y-%H%M%S")
-    run = wandb.init(project="active-learning", settings=wandb.Settings(_disable_stats=True),  #dir='/scratch/hpc-prf-deepmde/praneeth/wandb-logs/',
+    run = wandb.init(project="active-learning", settings=wandb.Settings(_disable_stats=True),
+                     # dir='/scratch/hpc-prf-deepmde/praneeth/wandb-logs/',
                      config={'model_name': model_name,
                              'epochs': epochs,
                              'batch_size': batch_size,
@@ -67,7 +64,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     dataset = "HR-WSI"
     dataset_type = get_dataset_type_by_name(dataset)
     loss_type = DepthLossType.NLL
-    load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/model-best-inf1k.h5'
+    load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/pr-base.h5'
 
     # Run meta information
     model_params = ModelParameters()
@@ -84,35 +81,27 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     model_params.set_parameter('augmentation', augmentation)
     model_params.set_parameter('warmup', warmup)
 
-    model_input_shape = [448, 448, 3]
-    m, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
+    model_input_shape = [224, 224, 3]
+    model, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
 
     # Compile model
-    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5,8], warmup=warmup, multiplier=lr_multi)
+    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 10], warmup=warmup, multiplier=lr_multi)
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=ranking_size,
                                              batch_size=batch_size,
                                              debug=False)
 
     optimizer = keras.optimizers.Adam(learning_rate=lr_sched_prov.get_lr_schedule(0), amsgrad=True)
-    # load the model here
-    model = tf.keras.models.load_model( load_path,
-        custom_objects={'EffNetFullyFledged': EffNetFullyFledged}, compile=False)
-    # model.compile(loss=loss_fn, optimizer=optimizer)
-    # model.summary()
 
+    model.load_weights(load_path)
+    model.compile(loss=loss_fn, optimizer=optimizer)
 
-
-    callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),WandbCallback()
-                 ]
-    verbosity = 1
-
+    callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule), WandbCallback(save_model=False)]
 
     # Apply preprocessing
     def preprocess_ds(loc_x, loc_y):
         return preprocess_fn(loc_x), loc_y
 
-    print("Start active sampling")
-    data_path = config["DATA"]["HR_WSI_1K_PATH"]
+    data_path = config["DATA"]["HR_WSI_3K_PATH"]
     dao_a = HRWSITFDataAccessObject(data_path, model_input_shape, seed)
     test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset(size=ds_size)
 
@@ -128,26 +117,52 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     test_img = vds[:150]
     test_gt = vgt[:150]
 
-    init_err = calc_err(model, test_img, test_gt)
+    init_err = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
+    print("$$$$ init error $$$: ", init_err)
     wandb.log({"init_error": init_err})
 
+    print("Start active sampling")
+    img_ds_list = list(test_imgs_ds.as_numpy_iterator())
+    img_gt_list = list(test_gts_ds.as_numpy_iterator())
 
-    active_train_ds = active_learning_data_provider(test_imgs_ds, test_gts_ds, model, batch_size=batch_size, ranking_size=ranking_size, split_num=32)
-    active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    model.compile(loss=loss_fn, optimizer=optimizer)
-    #fit active samples over the prev trainedd model.ls
-    steps_per_epoch = int(ds_size / batch_size)
-    print("fit active sampled data")
-    model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch, validation_data=val_ds,
-              callbacks=callbacks,verbose=1)
-    # Save the weights
-    timestr = time.strftime("%d%m%y-%H%M%S")
-    # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'active_weight_rnd_sampling')
-    #model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'active_model_inf_sampling.h5')
-    #evaluate on test data:
+    for i in range(5):
+        wandb.log({"active_count": i})
 
-    err = calc_err(model, test_img, test_gt)
+        active_train_ds = active_learning_data_provider(img_ds_list, img_gt_list, model, batch_size=batch_size,
+                                                        ranking_size=ranking_size, split_num=16,
+                                                        img_size=model_input_shape)
+        active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+        steps_per_epoch = int(ds_size / batch_size)
+        print("fit active sampled data")
+
+        model.fit(x=active_train_ds, initial_epoch=i, epochs=i + 1, steps_per_epoch=steps_per_epoch,
+                  validation_data=val_ds, verbose=1, callbacks=callbacks)
+
+        lr_sched_prov.init_lr = initial_lr * lr_multi
+        ep_error = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
+        wandb.log({'epoch_err': ep_error})
+
+        del active_train_ds
+
+    # active_train_ds = active_learning_data_provider(img_ds_list, img_gt_list, model, batch_size=batch_size,
+    #                                                 ranking_size=ranking_size, split_num=28, img_size=model_input_shape)
+    # active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    # model.compile(loss=loss_fn, optimizer=optimizer)
+    # #fit active samples over the prev trainedd model.ls
+    # steps_per_epoch = int(ds_size / batch_size)
+    # print("fit active sampled data")
+    # model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch, validation_data=val_ds,
+    #           callbacks=callbacks,verbose=1)
+    # # Save the weights
+    # timestr = time.strftime("%d%m%y-%H%M%S")
+    # # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'active_weight_rnd_sampling')
+    # #model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'active_model_inf_sampling.h5')
+    # #evaluate on test data:
+
+    err = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
     wandb.run.summary["test_error"] = err
+
 
 if __name__ == "__main__":
     perform_pldepth_experiment()

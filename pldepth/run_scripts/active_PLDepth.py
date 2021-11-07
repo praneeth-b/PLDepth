@@ -127,7 +127,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     model.compile(loss=loss_fn, optimizer=optimizer)
     #model.summary()
 
-    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_1K_PATH"], model_input_shape, seed)
+    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_3K_PATH"], model_input_shape, seed)
 
     train_imgs_ds, train_gts_ds, train_cons_masks, = dao.get_training_dataset()
     val_imgs_ds, val_gts_ds, val_cons_masks, = dao.get_validation_dataset()
@@ -138,7 +138,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
 
     train_ds = data_provider.provide_train_dataset(train_imgs_ds, train_gts_ds)
     val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
-    callbacks = [ TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule), WandbCallback(log_batch_frequency=None) ]
+    callbacks = [ TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule), WandbCallback(save_model=False) ]
     verbosity = 1
     if model_checkpoints:
         callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
@@ -154,23 +154,28 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
               callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
 
     print("Start active sampling")
-    data_path = config["DATA"]["HR_WSI_ACT_PATH"]
+
+
+    data_path = config["DATA"]["HR_WSI_3K_PATH"]
     dao_a = HRWSITFDataAccessObject(data_path, model_input_shape, seed=seed)
     test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset()
-    
 
-    
-    active_train_ds = active_learning_data_provider(test_imgs_ds, test_gts_ds, model, batch_size=batch_size,
-                                                   ranking_size=ranking_size, split_num=32)
-    active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    img_ds_list = list(test_imgs_ds.as_numpy_iterator())
+    img_gt_list = list(test_gts_ds.as_numpy_iterator())
+    lr_sched_prov.init_lr = initial_lr * 2
 
-    lr_sched_prov.init_lr = initial_lr*3
+    for i in range(3):
+        wandb.log({"active_count": i+1})
 
-    steps_per_epoch=int(5000/batch_size)
-    print("fit active sampled data")
-    n_epochs = epochs+10
-    model.fit(x=active_train_ds,initial_epoch=epochs, epochs=n_epochs, steps_per_epoch=steps_per_epoch, validation_data=val_ds, verbose=1,
-              callbacks=callbacks)
+        active_train_ds = active_learning_data_provider(img_ds_list, img_gt_list, model, batch_size=batch_size,
+                                                    ranking_size=ranking_size, split_num=28, img_size=model_input_shape)
+        active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+        steps_per_epoch=int(3000/batch_size)
+        print("fit active sampled data")
+        #n_epochs = epochs+10
+        model.fit(x=active_train_ds,initial_epoch=epochs+i, epochs=epochs+i+1, steps_per_epoch=steps_per_epoch, validation_data=val_ds, verbose=1,
+                  callbacks=callbacks)
 
     # Save the weights
     timestr = time.strftime("%d%m%y-%H%M%S")
