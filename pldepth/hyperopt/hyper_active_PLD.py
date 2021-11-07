@@ -150,7 +150,7 @@ def perform_active_PLD(pars=None):
 
         steps_per_epoch = int(ds_size / batch_size)
         print("fit active sampled data")
-        n_epochs = epochs + 4
+        n_epochs = epochs + 10
         model.fit(x=active_train_ds, initial_epoch=epochs, epochs=n_epochs, steps_per_epoch=steps_per_epoch,
                   validation_data=val_ds, verbose=1, callbacks=callbacks)
 

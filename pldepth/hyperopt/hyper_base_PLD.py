@@ -23,6 +23,7 @@ from wandb.keras import WandbCallback
 from keras import backend as K
 
 import os
+
 from pldepth.active_learning.metrics import calc_err
 
 def perform_base_PLD(pars=None):
@@ -91,7 +92,7 @@ def perform_base_PLD(pars=None):
         # model.summary()
 
         # Compile model
-        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[4, 8, 15, 20, 25], warmup=warmup,
+        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 8, 15, 20, 25], warmup=warmup,
                                                      multiplier=lr_multi)
         loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                                  batch_size=model_params.get_parameter("batch_size"),

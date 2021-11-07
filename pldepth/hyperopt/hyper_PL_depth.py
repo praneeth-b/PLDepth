@@ -22,18 +22,21 @@ from hyperopt import STATUS_OK
 import numpy as np
 import wandb
 from pldepth.active_learning.metrics import calc_err
+from wandb.keras import WandbCallback
 
 
 def perform_pldepth_experiment(pars=None):
+    #pars['rpi'] = 1000//pars['ranking_size']
     with wandb.init(config=pars, settings=wandb.Settings(_disable_stats=True)):
         w_config = wandb.config
 
         model_name = 'ff_effnet'
         epochs = w_config['epochs']
         batch_size = w_config['batch_size']
-        seed = 0
+        seed = 33  # 12 33, 49
         ranking_size = w_config['ranking_size']
-        rankings_per_image = w_config['rpi']
+        rankings_per_image = 1000//ranking_size
+        wandb.log({'rpi':rankings_per_image, 'seed':seed})
         initial_lr = w_config['lr']
         lr_multi = w_config['lr_multi']
         equality_threshold = 0.03
@@ -83,7 +86,7 @@ def perform_pldepth_experiment(pars=None):
 
         model_params.set_parameter('sampling_strategy', sampling_strategy)
 
-        model_input_shape = [448, 448, 3]
+        model_input_shape = [224, 224, 3]
 
         # Get model
         model, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
@@ -112,19 +115,18 @@ def perform_pldepth_experiment(pars=None):
         train_gts_ds = all_gts_ds.skip(ds_size // 15)
         train_cons_masks = all_cons_masks.skip(ds_size // 15)
 
-        #eval_imgs_ds, eval_gts_ds, eval_cons_masks, = dao.get_validation_dataset()
+        eval_imgs_ds, eval_gts_ds, eval_cons_masks, = dao.get_validation_dataset()  # used to calc test_err
 
         data_provider = HourglassLargeScaleDataProvider(model_params, train_cons_masks, val_cons_masks,
                                                         augmentation=model_params.get_parameter("augmentation"),
                                                         loss_type=loss_type)
 
         train_ds = data_provider.provide_train_dataset(train_imgs_ds, train_gts_ds)
-        #val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
+        val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
 
-        callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule)]
+        callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule), WandbCallback(save_model=False)]
         verbosity = 1
-        if model_checkpoints:
-            callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
+
 
         # model_params.log_parameters()
 
@@ -134,22 +136,22 @@ def perform_pldepth_experiment(pars=None):
 
         train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-        #val_ds = val_ds.map(preprocess_ds, num_parallel_calls=y
+        val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 
         steps_per_epoch = int((ds_size*14/15) / batch_size)
-        model.fit(x=train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch,
+        model.fit(x=train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch, validation_data=val_ds,
                  callbacks=callbacks, verbose=verbosity)
         
             #evaluate on test data:
-        vds = list(val_imgs_ds.as_numpy_iterator())
-        vgt = list(val_gts_ds.as_numpy_iterator())
+        vds = list(eval_imgs_ds.as_numpy_iterator())
+        vgt = list(eval_gts_ds.as_numpy_iterator())
         test_img = vds[:150]
         test_gt = vgt[:150]
 
-        loss = calc_err(model, test_img, test_gt)
+        loss = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
 
-        wandb.log({'val_loss': loss})
+        wandb.log({'test_err': loss})
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from pldepth.data.dao.hr_wsi import HRWSITFDataAccessObject
 from pldepth.data.io_utils import get_dataset_type_by_name
 from pldepth.data.providers.hourglass_provider import HourglassLargeScaleDataProvider
-from pldepth.data.sampling import ThresholdedMaskedRandomSamplingStrategy, InformationScoreBasedSampling
+from pldepth.data.sampling import ThresholdedMaskedRandomSamplingStrategy, InformationScoreBasedSampling,PurelyMaskedRandomSamplingStrategy
 from pldepth.losses.losses_meta import DepthLossType
 from pldepth.losses.nll_loss import HourglassNegativeLogLikelihood
 from pldepth.models.PLDepthNet import get_pl_depth_net
@@ -26,24 +26,22 @@ from pldepth.active_learning.metrics import calc_err
 from wandb.keras import WandbCallback
 
 
-
-
-
-def active_pldepth_experiment(pars=None):
-    with wandb.init(settings=wandb.Settings(_disable_stats=True),config=pars):
+def rnd_on_base(pars=None):
+    with wandb.init(settings=wandb.Settings(_disable_stats=True), config=pars):
         w_config = wandb.config
-
 
         model_name = 'ff_effnet'
         epochs = w_config['epochs']
         batch_size = w_config['batch_size']
         seed = 0;
         ranking_size = w_config['ranking_size']
-        rankings_per_image = w_config['rankings_per_image']
+        rankings_per_image = 784 // ranking_size
+        wandb.log({'rpi': rankings_per_image, 'seed': seed})
         initial_lr = w_config['lr']
         lr_multi = w_config['lr_multi']
-        split_num = w_config['num_split']
+
         ds_size = w_config['ds_size']
+        sampling_type = w_config['sampling_type']
         equality_threshold = 0.03
         model_checkpoints = False
         load_model_path = ""
@@ -57,8 +55,14 @@ def active_pldepth_experiment(pars=None):
         dataset = "HR-WSI"
         dataset_type = get_dataset_type_by_name(dataset)
         loss_type = DepthLossType.NLL
-        load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/pr-base.h5'
-        #load_path = '/home/praneeth/projects/thesis/git/PLDepth/pldepth/weights/100921-092654base_10rpi_1k_30ep_6r_model_rnd_sampling.h5'
+        if sampling_type == 3 or sampling_type == 2:
+            load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/pr-base.h5'
+        elif sampling_type == 1:
+            load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/base-inf-rs400.h5'
+
+        else:
+            print("wrong type")
+        # load_path = '/home/praneeth/projects/thesis/git/PLDepth/pldepth/weights/100921-092654base_10rpi_1k_30ep_6r_model_rnd_sampling.h5'
         # Run meta information
         model_params = ModelParameters()
         model_params.set_parameter("model_type", model_type)
@@ -78,65 +82,72 @@ def active_pldepth_experiment(pars=None):
         model, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
 
         # Compile model
-        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5,10,15,20], warmup=warmup,
+        lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[3, 10], warmup=warmup,
                                                      multiplier=lr_multi)
         loss_fn = HourglassNegativeLogLikelihood(ranking_size=ranking_size,
                                                  batch_size=batch_size,
                                                  debug=False)
-        steps_per_epoch = int(ds_size / batch_size)
-        # schedule = SGDRScheduler(min_lr=initial_lr * 0.01,
-        #                          max_lr=initial_lr,
-        #                          steps_per_epoch=steps_per_epoch,
-        #                          lr_decay=lr_multi,
-        #                          cycle_length=1,
-        #                          mult_factor=1)
 
-        optimizer = keras.optimizers.Adam(learning_rate=initial_lr, amsgrad=True)
-        # load the model here
-        #model = tf.keras.models.load_model(load_path,
-         #                                  custom_objects={'EffNetFullyFledged': EffNetFullyFledged}, compile=False)
+        optimizer = keras.optimizers.Adam(learning_rate=lr_sched_prov.get_lr_schedule(0), amsgrad=True)
+
         model.load_weights(load_path)
         model.compile(loss=loss_fn, optimizer=optimizer)
-        #model.summary()
 
         callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
-                     WandbCallback() #LearningRateScheduler(lr_sched_prov.get_lr_schedule)
-                     ]
-        verbosity = 1
-
+                     WandbCallback(save_model=False)]
 
         # Apply preprocessing
         def preprocess_ds(loc_x, loc_y):
             return preprocess_fn(loc_x), loc_y
 
-        print("Start active sampling")
-        data_path = config["DATA"]["HR_WSI_10K_PATH"]    # todo data path
-        dao_a = HRWSITFDataAccessObject(data_path, model_input_shape, seed)
-        test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset(size=ds_size)
+        sampling_strategy = PurelyMaskedRandomSamplingStrategy(model_params)
+        model_params.set_parameter('sampling_strategy', sampling_strategy)
 
+        data_path = config["DATA"]["HR_WSI_10K_PATH"]
+        dao_a = HRWSITFDataAccessObject(data_path, model_input_shape, seed)
+
+        test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset(size=ds_size)
         val_imgs_ds, val_gts_ds, val_cons_masks = dao_a.get_validation_dataset(size=200)
 
         data_provider = HourglassLargeScaleDataProvider(model_params, test_cons_masks, val_cons_masks,
                                                         augmentation=False,
                                                         loss_type=loss_type)
+
+
+        train_ds = data_provider.provide_train_dataset(test_imgs_ds, test_gts_ds)
+
         val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
 
-        active_train_ds = active_learning_data_provider(test_imgs_ds, test_gts_ds, model, batch_size=batch_size,
-                                                        ranking_size=ranking_size, split_num=split_num)
-        active_train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        # Apply preprocessing
+        def preprocess_ds(loc_x, loc_y):
+            return preprocess_fn(loc_x), loc_y
 
-        # fit active samples over the prev trained model.ls
+        train_ds = train_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-        print("fit active sampled data")
-        model.fit(x=active_train_ds, epochs=epochs, steps_per_epoch=steps_per_epoch, validation_data=val_ds,
-                    callbacks=callbacks, verbose=1)
+
+
         vds = list(val_imgs_ds.as_numpy_iterator())
         vgt = list(val_gts_ds.as_numpy_iterator())
         test_img = vds[:150]
         test_gt = vgt[:150]
+        init_err = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
+        print("$$$$ init error $$$: ", init_err)
+        wandb.log({"init_error": init_err})
+        steps_per_epoch = (ds_size//batch_size)
+        model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+                   callbacks=callbacks, validation_data=val_ds, verbose=1)
 
-        loss = calc_err(model, test_img, test_gt)
-        wandb.log({'val_loss': loss})
+
+
+        min_err = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
+
+
+
+
+        wandb.log({'test_err': min_err})
+
+
 
 # if __name__ == "__main__":
 #     perform_pldepth_experiment()
