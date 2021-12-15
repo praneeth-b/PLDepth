@@ -110,7 +110,7 @@ def active_pldepth_experiment(pars=None):
             return preprocess_fn(loc_x), loc_y
 
         print("Start active sampling")
-        data_path = config["DATA"]["HR_WSI_10K_PATH"]    # todo data path
+        data_path = config["DATA"]["HR_WSI_10K_PATH"]
         dao_a = HRWSITFDataAccessObject(data_path, model_input_shape, seed)
         test_imgs_ds, test_gts_ds, test_cons_masks = dao_a.get_training_dataset(size=ds_size)
 

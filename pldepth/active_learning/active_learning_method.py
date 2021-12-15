@@ -5,7 +5,7 @@ import cv2
 import tensorflow as tf
 import wandb
 
-#split_num = 32
+
 img_shape = [224,224,3]
 
 
@@ -44,7 +44,7 @@ def active_sampling(in_edges, pred_edges, split_num, img_size=[224, 224, 3]):
             r , c = get_edge_pixel(split_in[i])
             st_r = int(i / split_num) * int(split_in.shape[1]) + r
             st_c = int((i % split_num) * split_in.shape[2]) + c
-            dist[i] = 50    # high val min 7x7 = ~90  #np.sqrt(2*(img_shape[0]/split_num)**2)  # max dist in split imgs diagonal
+            dist[i] = np.sqrt(2*(img_shape[0]/split_num)**2)  # max dist in split imgs diagonal
             pts[i] = np.array([st_r, st_c])
 
     # sorting the hausdorf dist
@@ -52,7 +52,7 @@ def active_sampling(in_edges, pred_edges, split_num, img_size=[224, 224, 3]):
     dist = dist[idx]
     pts = pts[idx]
     pos = pts[:, 0] * img_size[0] + pts[:, 1]
-    #wandb.log({'hausdorf_dist_mean': np.mean(dist), 'hausdorf_dist_variance': np.var(dist)})
+    wandb.log({'hausdorf_dist_mean': np.mean(dist), 'hausdorf_dist_variance': np.var(dist)})
     return pos.astype(np.uint32), pts.astype(np.uint32) , np.mean(dist) , np.var(dist)  # pos, pos_XY  1024x2
 
 

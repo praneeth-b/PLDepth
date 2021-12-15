@@ -27,7 +27,7 @@ sweep_config_i = {'method': 'bayes',
                     'ranking_size': {'distribution': 'constant', 'value':5},
                     'rpi': {'distribution': 'constant', 'value': 100},   ##  2000 // ranking_size
                     'lr_multi': {'distribution':'int_uniform', 'max':200, 'min':10}, #{'distribution': 'uniform', 'max': 0.5, 'min': 0},
-                    'sampling_type': {'distribution':'constant', 'value':3},  # todo
+                    'sampling_type': {'distribution':'constant', 'value':1},  #
                     'dataset_size': {'value':5000},
                     'seed':{'value':1}
 
@@ -60,7 +60,7 @@ sweep_config_pr = {'method': 'bayes',
                     'ranking_size': {'distribution': 'constant', 'value':5},
                     'rpi': {'distribution': 'constant', 'value': 100},
                     'lr_multi': {'distribution':'uniform', 'max':200, 'min':10}, #{'distribution': 'uniform', 'max': 0.5, 'min': 0},
-                    'sampling_type': {'distribution':'constant', 'value':1},  # todo
+                    'sampling_type': {'distribution':'constant', 'value':3},  #
                     'dataset_size': {'value':5000},
                     'seed':{'value':1}
 

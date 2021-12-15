@@ -155,8 +155,8 @@ def perform_pldepth_experiment(pars=None):
             #evaluate on test data:
         vds = list(eval_imgs_ds.as_numpy_iterator())
         vgt = list(eval_gts_ds.as_numpy_iterator())
-        test_img = vds[:250]
-        test_gt = vgt[:250]
+        test_img = vds[:300]
+        test_gt = vgt[:300]
 
         loss = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
 

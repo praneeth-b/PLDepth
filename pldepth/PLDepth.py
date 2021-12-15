@@ -21,16 +21,7 @@ from pldepth.util.tracking_utils import construct_model_checkpoint_callback, con
 from pldepth.active_learning.metrics import calc_err, dcg_metric
 
 import  numpy as np
-def compute_chi_sq(a, rs):
-    """
-    a: the rpi X ranking_size X 2 array. train_ds[1]
-    """
-    c2 = 0
-    expected_list = np.linspace(0.001, 0.999, rs)
-    for ar in a:
-        l = ar[:,1]
-        c2 += -(np.square(l - expected_list) / expected_list).sum()
-    return  c2/a.shape[0]
+
 
 
 
@@ -59,12 +50,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     config = init_env(experiment_name=str(sampling_type), autolog_freq=1, seed=seed)
     print("dataset size is: ",ds_size)
     run_name= "Pldepth-train"
-    #print("#########********** main INITIALIZING WANDB ***********  ####################")
-    #os.environ['WANDB_API_KEY'] = '58ae5a04488d3faafd7b3e0e0cc0e373226104c6'
-    #os.environ['WANDB_DIR'] ='/scratch/hpc-prf-deepmde/praneeth/wandb-logs/'
-    #os.environ["WANDB_NAME"] = run_name
-    #os.environ["WANDB_CONSOLE"] = "off"
-    #os.environ['WANDB_MODE'] = 'offline'
+
 
     
     print("##################### train started ###########################")
@@ -120,7 +106,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     else:
         print("wrong selection of sampling type")
         return 13
-    ds_size = 6200
+
     model_params.set_parameter('sampling_strategy', sampling_strategy)
 
     model_input_shape = [224, 224, 3]
@@ -130,7 +116,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     #model.summary()
 
     # Compile model
-    lr_sched_prov =  LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 10,15,20,25], warmup=warmup, multiplier=lr_multi)
+
     steps_per_epoch = int((ds_size*14/15)/ batch_size)
     schedule = SGDRScheduler(min_lr=initial_lr*(1/lr_multi),
                           max_lr= initial_lr,
@@ -187,12 +173,12 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 
-    #model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
-          #     callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
+    model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+               callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
     # Save the weights
 
-    #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
-    #model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'best-hyp_rnd_sampling.h5')
+    model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
+    model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'best-hyp_rnd_sampling.h5')
 
     #evaluate on test data:
     vds = list(eval_imgs_ds.as_numpy_iterator())
@@ -214,13 +200,13 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     wandb.log({"ex_img": images})
     gt = wandb.Image(np.array(gt_img), caption="input ground truth")
     wandb.log({"ex_gt": gt})
-    #op_img = []
-    #for i in range(5):
-    #pred = model.predict(np.array([ip_img]), batch_size=None)
-    #op_img.append(np.squeeze(pred))
-    #print(pred.shape, np.squeeze(pred).shape)
-    #op = wandb.Image(np.squeeze(pred), caption="predicted depth")
-    #wandb.log({"ex_pred", op})
+    op_img = []
+    for i in range(5):
+        pred = model.predict(np.array([ip_img]), batch_size=None)
+        op_img.append(np.squeeze(pred))
+        print(pred.shape, np.squeeze(pred).shape)
+        op = wandb.Image(np.squeeze(pred), caption="predicted depth")
+        wandb.log({"ex_pred", op})
 
 if __name__ == "__main__":
     perform_pldepth_experiment()

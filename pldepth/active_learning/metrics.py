@@ -6,7 +6,7 @@ from scipy.spatial import cKDTree
 import cv2
 from pldepth.active_learning.preprocess_utils import auto_canny
 
-def hausdorff_distance(image0, image1):
+def hausdorff_distance(image0, image1):    # from scikit image
     a_points = np.transpose(np.nonzero(image0))
     b_points = np.transpose(np.nonzero(image1))
 
@@ -57,7 +57,7 @@ def hausdorff_pair(image0, image1):
                b_points[max_index_from_a]
 
 
-def ordinal_error(op, gt, imsize=(448, 448), num=500):
+def ordinal_error(op, gt, imsize=(448, 448), num=5000):
     np.random.seed(10)
     idx = np.random.choice(list(range(imsize[0] * imsize[1])), num * 2, replace=False)  # add seed or np random state
     idx0, idx1 = np.split(idx, 2)

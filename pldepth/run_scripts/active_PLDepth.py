@@ -113,7 +113,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     # model.summary()
 
     # Compile model
-    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 8,11,12,13,14,15,16,17 ], warmup=warmup, multiplier=lr_multi)
+    #lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 8,11,12,13,14,15,16,17 ], warmup=warmup, multiplier=lr_multi)
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                              batch_size=model_params.get_parameter("batch_size"),
                                              debug=False)
@@ -168,7 +168,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     img_gt_list = list(test_gts_ds.as_numpy_iterator())
 
     schedule.steps_per_epoch = 5000/batch_size
-    for i in range(4):
+    for i in range(6):
         
         wandb.log({"active_count": i})
 
@@ -191,8 +191,8 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     # evaluate on test data:
     vds = list(val_imgs_ds.as_numpy_iterator())
     vgt = list(val_gts_ds.as_numpy_iterator())
-    test_img = vds[:200]
-    test_gt = vgt[:200]
+    test_img = vds[:300]
+    test_gt = vgt[:300]
 
     err = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
     wandb.run.summary["test_error"] = err
