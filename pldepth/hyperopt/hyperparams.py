@@ -22,13 +22,14 @@ sweep_config_i = {'method': 'bayes',
                 'metric': {'goal': 'minimize', 'name': 'test_err'},
                 'parameters': {
                     'batch_size': {'distribution': 'constant', 'value': 6},
-                    'epochs': {'distribution': 'constant', 'value': 12},
-                    'lr': {'distribution': 'log_uniform', 'max': -1, 'min': -5},
-                    'ranking_size': {'distribution': 'int_uniform', 'max': 500, 'min': 4},
-                    #'rpi': {'distribution': 'constant', 'value': 1},     ##  2000 // ranking_size
-                    'lr_multi': {'distribution':'constant', 'value':0.3} , #{'distribution': 'uniform', 'max': 0.5, 'min': 0},
-                    'sampling_type': {'distribution':'constant', 'value':1},
-                    'dataset_size': {'value':2150}
+                    'epochs': {'distribution': 'constant', 'value': 8},
+                    'lr': {'distribution': 'log_uniform', 'max': -2, 'min': -4},
+                    'ranking_size': {'distribution': 'constant', 'value':5},
+                    'rpi': {'distribution': 'constant', 'value': 100},   ##  2000 // ranking_size
+                    'lr_multi': {'distribution':'int_uniform', 'max':200, 'min':10}, #{'distribution': 'uniform', 'max': 0.5, 'min': 0},
+                    'sampling_type': {'distribution':'constant', 'value':3},  # todo
+                    'dataset_size': {'value':5000},
+                    'seed':{'value':1}
 
                 }
                 }
@@ -39,12 +40,13 @@ sweep_config_t = {'method': 'bayes',
                 'parameters': {
                     'batch_size': {'distribution': 'constant', 'value': 6},
                     'epochs': {'distribution': 'constant', 'value': 12},
-                    'lr': {'distribution': 'log_uniform', 'max': -1, 'min': -5},
+                    'lr': {'distribution': 'log_uniform', 'max': -2, 'min': -4},
                     'ranking_size': {'distribution': 'int_uniform', 'max': 500, 'min': 4},
                     #'rpi': {'distribution': 'constant', 'value': 1},
                     'lr_multi': {'distribution':'constant', 'value':0.3}  ,#{'distribution': 'uniform', 'max': 0.5, 'min': 0},
                     'sampling_type': {'distribution':'constant', 'value':0},
-                    'dataset_size': {'value':2150}
+                    'dataset_size': {'value':2150},
+                        'seed':{'value':1}
 
                 }
                 }
@@ -53,13 +55,14 @@ sweep_config_pr = {'method': 'bayes',
                 'metric': {'goal': 'minimize', 'name': 'test_err'},
                 'parameters': {
                     'batch_size': {'distribution': 'constant', 'value': 6},
-                    'epochs': {'distribution': 'constant', 'value': 12},
-                    'lr': {'distribution': 'log_uniform', 'max': -1, 'min': -5},
-                    'ranking_size': {'distribution': 'int_uniform', 'max': 500, 'min': 4},
-                    #'rpi': {'distribution': 'constant', 'value': 1},
-                    'lr_multi': {'distribution':'constant', 'value':0.3}  ,#{'distribution': 'uniform', 'max': 0.5, 'min': 0},
-                    'sampling_type': {'distribution':'constant', 'value':3},
-                    'dataset_size': {'value':2150}
+                    'epochs': {'distribution': 'constant', 'value': 8},
+                    'lr': {'distribution': 'log_uniform', 'max': -2, 'min': -4},
+                    'ranking_size': {'distribution': 'constant', 'value':5},
+                    'rpi': {'distribution': 'constant', 'value': 100},
+                    'lr_multi': {'distribution':'uniform', 'max':200, 'min':10}, #{'distribution': 'uniform', 'max': 0.5, 'min': 0},
+                    'sampling_type': {'distribution':'constant', 'value':1},  # todo
+                    'dataset_size': {'value':5000},
+                    'seed':{'value':1}
 
                 }
                 }
@@ -80,13 +83,15 @@ activ_sweep = { 'method': 'bayes',
 activ_sweep2 = { 'method': 'bayes',
                 'metric': {'goal': 'minimize', 'name': 'test_err'},
              'parameters': {
-                'lr': {'distribution': 'log_uniform', 'max': -1, 'min': -5},
-                'lr_multi': {'distribution': 'uniform', 'max': 0.7, 'min': 0},
-                'ranking_size': {'distribution': 'int_uniform', 'max': 500, 'min': 4},
+                'lr': {'distribution': 'log_uniform', 'max': -2, 'min': -5},
+                'lr_multi': {'distribution': 'uniform', 'max': 1000, 'min': 10},
+                'ranking_size': {"value":125},   # {'distribution': 'int_uniform', 'max': 500, 'min': 4},
+                 'rpi':{"value":2},
                 'batch_size': {'distribution': 'constant', 'value': 6},
-                'epochs': {'distribution': 'constant', 'value': 4},
-                 'num_split': {"values": [8, 14, 16, 28, 32]},  #{'distribution': 'constant', 'value': 32} ,  #
-                 'ds_size' : {"value": 4000},  # [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]
+                'epochs': {'distribution': 'constant', 'value': 7},
+                 'num_split': {"value":16}, #{'distribution': 'constant', 'value': 32} ,  #
+                 'ds_size' : {"value": 2000},  # [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]
+                 'act_ds_size' : {"value": 5000},
                  'sampling_type': {'distribution':'constant', 'value':1},
                  'canny_sigma':{'value':1.8}
              }
@@ -96,13 +101,16 @@ rnd_base = { 'method': 'bayes',
                 'metric': {'goal': 'minimize', 'name': 'test_err'},
              'parameters': {
                 'lr': {'distribution': 'log_uniform', 'max': -1, 'min': -5},
-                'lr_multi': {'distribution': 'uniform', 'max': 0.7, 'min': 0},
-                'ranking_size': {'distribution': 'int_uniform', 'max': 500, 'min': 4},
+                'lr_multi': {'distribution': 'uniform', 'max': 1000, 'min': 10},
+                'ranking_size': {"value":125}, #{'distribution': 'int_uniform', 'max': 500, 'min': 4},
+                'rpi':{"value":2},
                 'batch_size': {'distribution': 'constant', 'value': 6},
-                'epochs': {'distribution': 'constant', 'value': 5},
-
-                 'ds_size' : {"value": 4000},  # [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]
-                 'sampling_type': {'distribution':'constant', 'value':1},
+                'epochs': {'distribution': 'constant', 'value': 7},
+                'sampling_type': {'distribution':'constant', 'value':1},
+                 'ds_size' : {"value": 2000},  # [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]
+                'act_ds_size' : {"value": 5000},
+                 'sampling_type': {'distribution':'constant', 'value':1}
+	         #'dummy':{'distribution': 'uniform', 'max': 1000, 'min': 10}
 
              }
                  }

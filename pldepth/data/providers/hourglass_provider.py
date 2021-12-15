@@ -19,7 +19,7 @@ class HourglassLargeScaleDataProvider(TFDatasetDataProvider):
         self.val_consistency_masks = val_consistency_masks
 
         self.random_sampler = ThresholdedMaskedRandomSamplingStrategy(model_params, sampling_eq_threshold)
-        self.val_random_sampler = PurelyMaskedRandomSamplingStrategy(model_params)
+        self.val_random_sampler = ThresholdedMaskedRandomSamplingStrategy(model_params) # PurelyMaskedRandomSamplingStrategy(model_params)
 
         self.augmentation = augmentation
 

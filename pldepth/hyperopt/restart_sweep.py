@@ -1,6 +1,8 @@
 import wandb
 import os
 from pldepth.hyperopt.act_base_sweep import act_on_base
+from pldepth.hyperopt.rnd_base_sweep import rnd_on_base
+
 
 from pldepth.hyperopt.hyper_PL_depth import perform_pldepth_experiment
 from pldepth.hyperopt.hyper_active_on_base import active_pldepth_experiment
@@ -37,7 +39,7 @@ if __name__ == "__main__":
     elif typ == 2:
         #sweep_id = wandb.sweep(activ_sweep, project="Active_sweep")
         print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&", sweep_id)
-        wandb.agent(sweep_id, act_on_base, project="Active_sweep", count=25)
+        wandb.agent(sweep_id, rnd_on_base, project="Active_sweep", count=25)
 
     else:
         print("wrong sampling type")

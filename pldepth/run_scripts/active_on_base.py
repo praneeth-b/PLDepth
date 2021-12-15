@@ -56,7 +56,8 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
                              'rankings_per_image': rankings_per_image,
                              'initial_lr': initial_lr,
                              'lr_multi': lr_multi,
-                             'dataset_size': ds_size
+                             'dataset_size': ds_size,
+			     'split_num': 16
                              })
     w_config = wandb.config
     # Determine model, dataset and loss types
@@ -64,7 +65,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     dataset = "HR-WSI"
     dataset_type = get_dataset_type_by_name(dataset)
     loss_type = DepthLossType.NLL
-    load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/pr-base.h5'
+    load_path = '/upb/departments/pc2/groups/hpc-prf-deepmde/praneeth/PLDepth/pldepth/weights/base/base-inf-rs400.h5'
 
     # Run meta information
     model_params = ModelParameters()
@@ -85,7 +86,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     model, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
 
     # Compile model
-    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 10], warmup=warmup, multiplier=lr_multi)
+    lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[1,2,3,4,5,6,7,8], warmup=warmup, multiplier=lr_multi)
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=ranking_size,
                                              batch_size=batch_size,
                                              debug=False)
@@ -139,7 +140,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
         model.fit(x=active_train_ds, initial_epoch=i, epochs=i + 1, steps_per_epoch=steps_per_epoch,
                   validation_data=val_ds, verbose=1, callbacks=callbacks)
 
-        lr_sched_prov.init_lr = initial_lr * lr_multi
+        #lr_sched_prov.init_lr = initial_lr * lr_multi
         ep_error = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
         wandb.log({'epoch_err': ep_error})
 

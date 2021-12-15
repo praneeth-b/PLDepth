@@ -139,7 +139,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
 
     err = calc_err(model, test_img, test_gt)
     wandb.run.summary["test_error"] = err
-
+    
 
     run.finish()
 

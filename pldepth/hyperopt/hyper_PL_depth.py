@@ -15,7 +15,7 @@ import tensorflow as tf
 from pldepth.active_learning.metrics import ordinal_error
 from pldepth.util.env import init_env
 from pldepth.models.models_meta import ModelParameters, get_model_type_by_name
-from pldepth.util.training_utils import LearningRateScheduleProvider
+from pldepth.util.training_utils import LearningRateScheduleProvider, LearningRateLoggingCallback, SGDRScheduler
 from pldepth.util.tracking_utils import construct_model_checkpoint_callback, construct_tensorboard_callback
 
 from hyperopt import STATUS_OK
@@ -33,10 +33,9 @@ def perform_pldepth_experiment(pars=None):
         model_name = 'ff_effnet'
         epochs = w_config['epochs']
         batch_size = w_config['batch_size']
-        seed = 33  # 12 33, 49
+        seed = w_config['seed']  # 1,2,3
         ranking_size = w_config['ranking_size']
-        rankings_per_image = 1000//ranking_size
-        wandb.log({'rpi':rankings_per_image, 'seed':seed})
+        rankings_per_image = w_config['rpi']
         initial_lr = w_config['lr']
         lr_multi = w_config['lr_multi']
         equality_threshold = 0.03
@@ -95,6 +94,15 @@ def perform_pldepth_experiment(pars=None):
         # Compile model
         lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 10, 15], warmup=warmup,
                                                      multiplier=lr_multi)
+        steps_per_epoch = int((ds_size * 14 / 15) / batch_size)
+        schedule = SGDRScheduler(min_lr=initial_lr * (1/lr_multi),
+                                 max_lr=initial_lr,
+                                 steps_per_epoch=steps_per_epoch,
+                                 lr_decay=0.9,
+                                 cycle_length=epochs,  # decays over entire training- non cyclic
+                                 mult_factor=1)
+
+
         loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
                                                  batch_size=model_params.get_parameter("batch_size"),
                                                  debug=False)
@@ -124,7 +132,8 @@ def perform_pldepth_experiment(pars=None):
         train_ds = data_provider.provide_train_dataset(train_imgs_ds, train_gts_ds)
         val_ds = data_provider.provide_val_dataset(val_imgs_ds, val_gts_ds)
 
-        callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule), WandbCallback(save_model=False)]
+        callbacks = [TerminateOnNaN(), schedule, LearningRateLoggingCallback(), #LearningRateScheduler(lr_sched_prov.get_lr_schedule),
+                     WandbCallback(save_model=False)]
         verbosity = 1
 
 
@@ -146,8 +155,8 @@ def perform_pldepth_experiment(pars=None):
             #evaluate on test data:
         vds = list(eval_imgs_ds.as_numpy_iterator())
         vgt = list(eval_gts_ds.as_numpy_iterator())
-        test_img = vds[:150]
-        test_gt = vgt[:150]
+        test_img = vds[:250]
+        test_gt = vgt[:250]
 
         loss = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
 

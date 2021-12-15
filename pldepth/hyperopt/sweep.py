@@ -22,25 +22,25 @@ if __name__ == "__main__":
     if typ == 0:
         sweep_id = wandb.sweep(sweep_config_t, project="PLD-Thresh-rnd-sweep")
         print(sweep_id)
-        wandb.agent(sweep_id, perform_pldepth_experiment, count=50)
+        wandb.agent(sweep_id, perform_pldepth_experiment, count=20)
 
 
     elif typ == 1:
         sweep_id = wandb.sweep(sweep_config_i, project="PLD-sweep")
         print(sweep_id)
-        wandb.agent(sweep_id, perform_pldepth_experiment, count=50)
+        wandb.agent(sweep_id, perform_pldepth_experiment, count=20)
 
     elif typ == 3:
         sweep_id = wandb.sweep(sweep_config_pr, project="PLD-rnd-sweep")
         print(sweep_id)
-        wandb.agent(sweep_id, perform_pldepth_experiment, count=50)
+        wandb.agent(sweep_id, perform_pldepth_experiment, count=20)
 
 
     elif typ == 2:
         print("Active learning sweep")
         sweep_id = wandb.sweep(rnd_base, project="Active_sweep")
         print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&", sweep_id)
-        wandb.agent(sweep_id, rnd_on_base, count=40)
+        wandb.agent(sweep_id, rnd_on_base, count=20)
 
     else:
         print("wrong selection")

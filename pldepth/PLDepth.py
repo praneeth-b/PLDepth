@@ -18,7 +18,21 @@ from pldepth.util.env import init_env
 from pldepth.models.models_meta import ModelParameters, get_model_type_by_name
 from pldepth.util.training_utils import LearningRateScheduleProvider, SGDRScheduler, LearningRateLoggingCallback
 from pldepth.util.tracking_utils import construct_model_checkpoint_callback, construct_tensorboard_callback
-from pldepth.active_learning.metrics import calc_err
+from pldepth.active_learning.metrics import calc_err, dcg_metric
+
+import  numpy as np
+def compute_chi_sq(a, rs):
+    """
+    a: the rpi X ranking_size X 2 array. train_ds[1]
+    """
+    c2 = 0
+    expected_list = np.linspace(0.001, 0.999, rs)
+    for ar in a:
+        l = ar[:,1]
+        c2 += -(np.square(l - expected_list) / expected_list).sum()
+    return  c2/a.shape[0]
+
+
 
 @click.command()
 @click.option('--model_name', default='ff_effnet', help='Backbone model',
@@ -57,7 +71,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     timestr = time.strftime("%d%m%y-%H%M%S")
     #config = init_env(experiment_name=timestr+str(sampling_type), autolog_freq=1, seed=seed)
     print("the env var is: ", os.environ['WANDB_DIR']) 
-    run = wandb.init(project="dummy", settings=wandb.Settings(_disable_stats=True), # dir='/scratch/hpc-prf-deepmde/praneeth/wandb-logs',
+    run = wandb.init(project="Pldepth-train", settings=wandb.Settings(_disable_stats=True), # dir='/scratch/hpc-prf-deepmde/praneeth/wandb-logs',
                      config={'model_name': model_name,
                              'epochs': epochs,
                              'batch_size': batch_size,
@@ -106,12 +120,10 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     else:
         print("wrong selection of sampling type")
         return 13
-
+    ds_size = 6200
     model_params.set_parameter('sampling_strategy', sampling_strategy)
 
-    # model_input_shape = [448, 448, 3]
     model_input_shape = [224, 224, 3]
-
 
     # Get model
     model, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
@@ -120,12 +132,12 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     # Compile model
     lr_sched_prov =  LearningRateScheduleProvider(init_lr=initial_lr, steps=[5, 10,15,20,25], warmup=warmup, multiplier=lr_multi)
     steps_per_epoch = int((ds_size*14/15)/ batch_size)
-    # schedule = SGDRScheduler(min_lr=initial_lr*0.01,
-      #                     max_lr= initial_lr,
-       #                    steps_per_epoch=steps_per_epoch,
-        #                   lr_decay=lr_multi,
-         #                  cycle_length=1,
-          #                 mult_factor=1)
+    schedule = SGDRScheduler(min_lr=initial_lr*(1/lr_multi),
+                          max_lr= initial_lr,
+                          steps_per_epoch=steps_per_epoch,
+                          lr_decay=0.9,
+                          cycle_length=epochs,    # decays over entire training- non cyclic
+                          mult_factor=1)
 
 
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=model_params.get_parameter("ranking_size"),
@@ -138,7 +150,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     if load_model_path != "":
         model.load_weights(load_model_path)
 
-    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_ROOT_PATH"], model_input_shape, seed)
+    dao = HRWSITFDataAccessObject(config["DATA"]["HR_WSI_10K_PATH"], model_input_shape, seed)
 
     all_imgs_ds, all_gts_ds, all_cons_masks = dao.get_training_dataset(size=ds_size)
     val_imgs_ds = all_imgs_ds.take(ds_size//15)
@@ -162,12 +174,10 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
 
 
     timestr = time.strftime("%d%m%y-%H%M%S")
-    hist_file = timestr + "rnd_hist.log"
-    callbacks = [TerminateOnNaN(), LearningRateScheduler(lr_sched_prov.get_lr_schedule),
-                   WandbCallback(save_model=True)]
+    callbacks = [TerminateOnNaN(), schedule, LearningRateLoggingCallback(),  #LearningRateScheduler(lr_sched_prov.get_lr_schedule),
+                   WandbCallback()]
     verbosity = 1
-    if model_checkpoints:
-        callbacks.append(construct_model_checkpoint_callback(config, model_type, verbosity))
+
 
     # Apply preprocessing
     def preprocess_ds(loc_x, loc_y):
@@ -177,25 +187,40 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     val_ds = val_ds.map(preprocess_ds, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 
-    # model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
-    #            callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
+    #model.fit(x=train_ds, epochs=model_params.get_parameter("epochs"), steps_per_epoch=steps_per_epoch,
+          #     callbacks=callbacks, validation_data=val_ds, verbose=verbosity)
     # Save the weights
 
-    # model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
+    #model.save_weights('/scratch/hpc-prf-deepmde/praneeth/output/'+timestr+'weight_rnd_sampling')
     #model.save('/scratch/hpc-prf-deepmde/praneeth/output/' + timestr + 'best-hyp_rnd_sampling.h5')
 
     #evaluate on test data:
     vds = list(eval_imgs_ds.as_numpy_iterator())
     vgt = list(eval_gts_ds.as_numpy_iterator())
-    test_img = vds[:150]
-    test_gt = vgt[:150]
+    test_img = vds[:250]
+    test_gt = vgt[:250]
 
     err = calc_err(model, test_img, test_gt, img_size=tuple(model_input_shape[:2]))
     wandb.run.summary["test_error"] = err
-    print("Test error is : ",err)
 
+    dcg_val = dcg_metric(model, test_img, test_gt, list_size=200)
+    wandb.run.summary["ndcg_200"] = dcg_val
 
+    ## log images:
+    ip_img = vds[10]
+    gt_img = vgt[10]
 
+    images = wandb.Image(np.array(ip_img), caption="input image")
+    wandb.log({"ex_img": images})
+    gt = wandb.Image(np.array(gt_img), caption="input ground truth")
+    wandb.log({"ex_gt": gt})
+    #op_img = []
+    #for i in range(5):
+    #pred = model.predict(np.array([ip_img]), batch_size=None)
+    #op_img.append(np.squeeze(pred))
+    #print(pred.shape, np.squeeze(pred).shape)
+    #op = wandb.Image(np.squeeze(pred), caption="predicted depth")
+    #wandb.log({"ex_pred", op})
 
 if __name__ == "__main__":
     perform_pldepth_experiment()

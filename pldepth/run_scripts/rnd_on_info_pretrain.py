@@ -87,7 +87,7 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     model_input_shape = [448, 448, 3]
     m, preprocess_fn = get_pl_depth_net(model_params, model_input_shape)
 
-    # Compile model
+   
     lr_sched_prov = LearningRateScheduleProvider(init_lr=initial_lr, steps=[5,8], warmup=warmup, multiplier=lr_multi)
     loss_fn = HourglassNegativeLogLikelihood(ranking_size=ranking_size,
                                              batch_size=batch_size,
@@ -129,13 +129,16 @@ def perform_pldepth_experiment(model_name, epochs, batch_size, seed, ranking_siz
     vgt = list(val_gts_ds.as_numpy_iterator())
     test_img = vds[:150]
     test_gt = vgt[:150]
+    
+    model.compile(loss=loss_fn, optimizer=optimizer)
 
     init_err = calc_err(model, test_img, test_gt)
     wandb.log({"init_error": init_err})
 
     print("fit random sampled data")
     steps_per_epoch = int(1000 / batch_size)
-
+    # Compile the model 
+    # model.compile(loss=loss_fn, optimizer=optimizer)
     model.fit(x=r_train_ds,  epochs=epochs, steps_per_epoch=steps_per_epoch,
               validation_data=val_ds, verbose=1, callbacks=callbacks)
 

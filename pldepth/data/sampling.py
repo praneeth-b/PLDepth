@@ -128,7 +128,7 @@ class PurelyMaskedRandomSamplingStrategy(RandomSamplingStrategy):
 
         return x_scale, y_scale
 
-    def sample_masked_rankings(self, image, mask, gt, batch_size, batch_size_factor=1.5):
+    def sample_masked_rankings(self, image, mask, gt, batch_size, batch_size_factor=0.8):
         x_scale, y_scale = self.determine_x_y_scales(image, mask)
         result_matrix, gts_buffer, point_buffer, dists = self.initialize_buffers(batch_size, batch_size_factor)
 
@@ -144,7 +144,7 @@ class PurelyMaskedRandomSamplingStrategy(RandomSamplingStrategy):
 
         return result_matrix, dists
 
-    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=1):
+    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=0.8):
         result_matrix, dists = self.sample_masked_rankings(image, mask, gt, batch_size, batch_size_factor)
 
         return result_matrix[:batch_size]
@@ -215,7 +215,7 @@ class InformationScoreBasedSampling(MaskedRandomSamplingStrategy):
         #self.batch_size_factor = batch_size_factor
         self.equality_penalty = equality_penalty
 
-    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=10):
+    def sample_masked_point_batch(self, image, mask, gt, batch_size, batch_size_factor=5):
         min_dist = np.amin(gt)
         max_dist = np.amax(gt)
         # print(min_dist, "and max", max_dist)
